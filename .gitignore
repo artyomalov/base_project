@@ -1,0 +1,7 @@
+__pycache__
+.venv/
+.env_local
+.env_docker
+certs/
+jwt-private.pem
+jwt-public.pem
