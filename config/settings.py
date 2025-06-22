@@ -16,17 +16,17 @@ class AuthJWT(BaseModel):
     ACCESS_TOKEN_TYPE: str = "access"
     REFRESH_TOKEN_TYPE: str = "refresh"
 
-    REFRESH_TOKEN_EXPARE_TIME: datetime = datetime.now(UTC) + timedelta(minutes=20)
-    ACCESS_TOKEN_EXPIRE_TIME: datetime = datetime.now(UTC) + timedelta(minutes=5)
+    REFRESH_TOKEN_EXPIRE_TIME: int = 3000
+    ACCESS_TOKEN_EXPIRE_TIME: int = 86400
+    # REFRESH_TOKEN_EXPIRE_TIME: datetime = datetime.now(UTC) + timedelta(minutes=20)
+    # ACCESS_TOKEN_EXPIRE_TIME: datetime = datetime.now(UTC) + timedelta(minutes=5)
 
     ALLOW_ANY_ROUTES: list[str] = (
-        "/api/v1/user_auth/login",
-        "/api/v1/user_auth/refresh",
+        "/api/v1/auth/login",
+        "/api/v1/auth/refresh",
         "/api/v1/healthcheck",
         "/docs",
         "/favicon.ico",
-        "/openapi.json",
-        "/api/v1/openapi.json",
     )
 
     ADMIN_ROUTES: list[str] = (

@@ -5,16 +5,16 @@ from fastapi.responses import JSONResponse
 from jwt import InvalidSignatureError, ExpiredSignatureError, DecodeError
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
-from files.apps.iam.services import verify_user_service
 from config import settings
+
+from files.apps.user.services import verify_user_services
 from files.exceptions import (
     JWTTokenHasNotBeenProvidedError,
     ValidationError,
-    DoesNotExistError,
     UnprocessableEntityError,
     IsNotActiveError,
+    InvalidPasswordError,
 )
-from files.exceptions.password_not_valid_exception import InvalidPasswordError
 
 logger = getLogger("common.base_logger")
 
@@ -23,16 +23,16 @@ async def verify_jwt_access_token(request: Request, call_next):
     try:
         path = request.scope.get("path")
         if (
-            path and path in settings.auth_jwt.DO_NOT_NEED_JWT_AUTHORIZATION_ROUTES
+            path and path in settings.auth_jwt.ALLOW_ANY_ROUTES
         ) or request.method == "OPTIONS":
             response = await call_next(request)
 
             return response
 
-        user_username_is_main_is_active_dto = await verify_user_service.verify_user_access_token_and_get_username_is_active_is_admin(
+        user_username_is_main_is_active_dto = await verify_user_services.verify_user_access_token_and_get_username_is_active_is_admin(
             request
         )
-        request.state.username = user_username_is_main_is_active_dto.username
+        request.state.user_id = user_username_is_main_is_active_dto.user_id
         request.state.is_active = user_username_is_main_is_active_dto.is_active
         request.state.is_admin = user_username_is_main_is_active_dto.is_admin
         # request.state.username = "root"

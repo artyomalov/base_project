@@ -7,16 +7,16 @@ from create_app import create_app
 logger = getLogger("logger")
 logger.setLevel(DEBUG)
 
+app = create_app()
 
 if __name__ == "__main__":
-    app = create_app()
 
     try:
         run(
             app="main:app",
             reload=True,
             log_level="debug",
-            host="0.0.0.0",
+            host="localhost",
             port=8000,
         )
     except CancelledError:

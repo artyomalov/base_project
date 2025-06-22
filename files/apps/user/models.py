@@ -1,7 +1,5 @@
-from typing import TYPE_CHECKING, List, Optional
-
-from sqlalchemy import String, ForeignKey, text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from config import Base
 
