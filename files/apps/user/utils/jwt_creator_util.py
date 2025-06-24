@@ -7,13 +7,13 @@ from config import settings
 class JWTCreatorUtil:
     def __init__(
         self,
-        user_id: int,
+        username: int,
         email: str,
         access_token_expire_time: int,
         refresh_token_expire_time: int,
         # is_admin: bool,
     ):
-        self.user_id = user_id
+        self.username = username
         self.email = email
         self.access_token_expire_time = access_token_expire_time
         self.refresh_token_expire_time = refresh_token_expire_time
@@ -22,7 +22,7 @@ class JWTCreatorUtil:
     def create_access_token(self) -> bytes:
         timestamp = int(time())
         payload = {
-            "sub": self.user_id,
+            "sub": self.username,
             "email": self.email,
             "token_type": settings.auth_jwt.ACCESS_TOKEN_TYPE,
             "iat": timestamp,
@@ -34,7 +34,7 @@ class JWTCreatorUtil:
     def create_refresh_token(self) -> bytes:
         timestamp = int(time())
         payload = {
-            "sub": self.user_id,
+            "sub": self.username,
             "token_type": settings.auth_jwt.REFRESH_TOKEN_TYPE,
             "iat": timestamp,
             "exp": timestamp + self.refresh_token_expire_time,

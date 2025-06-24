@@ -32,7 +32,7 @@ async def verify_jwt_access_token(request: Request, call_next):
         user_username_is_main_is_active_dto = await verify_user_services.verify_user_access_token_and_get_username_is_active_is_admin(
             request
         )
-        request.state.user_id = user_username_is_main_is_active_dto.user_id
+        request.state.username = user_username_is_main_is_active_dto.username
         request.state.is_active = user_username_is_main_is_active_dto.is_active
         request.state.is_admin = user_username_is_main_is_active_dto.is_admin
         # request.state.username = "root"

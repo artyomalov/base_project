@@ -92,7 +92,7 @@ class UserAuthEndpoints:
 
         user_and_token_data_dict = (
             await self.services.issue_access_refresh_token_and_get_user_data(
-                email=body.username, password=body.password
+                email=body.email, password=body.password
             )
         )
 

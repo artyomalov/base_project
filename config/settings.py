@@ -27,6 +27,7 @@ class AuthJWT(BaseModel):
         "/api/v1/healthcheck",
         "/docs",
         "/favicon.ico",
+        "/openapi.json",
     )
 
     ADMIN_ROUTES: list[str] = (

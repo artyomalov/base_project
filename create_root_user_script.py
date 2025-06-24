@@ -14,20 +14,20 @@ logger = getLogger("logger")
 
 
 async def create_root_user():
-    email = str(input("email")) or "root@mail.com"
-    password = str(input("password")) or "root"
+    username = str(input("username: ")) or "root"
+    password = str(input("password: ")) or "root"
 
     hashed_password = PasswordHandlingUtil.hash_password(password=password)
     async with async_session() as session:
-        query_get_user = select(User.email).where(User.email == email)
+        query_get_user = select(User.username).where(User.username == username)
         result = await session.execute(query_get_user)
-        user_email = result.scalar_one_or_none()
-        if user_email is not None:
+        user_username = result.scalar_one_or_none()
+        if user_username is not None:
             logger.debug("User already exists")
             return
 
         stmt_insert_user = insert(User).values(
-            email=email,
+            username=username,
             password=hashed_password,
             is_active=True,
             is_superuser=True,

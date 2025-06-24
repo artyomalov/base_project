@@ -10,17 +10,23 @@ logger.setLevel(DEBUG)
 app = create_app()
 
 if __name__ == "__main__":
+    run(
+        app="main:app",
+        reload=True,
+        log_level="debug",
+        host="localhost",
+        port=8000,
+    )
+# try:
+#     run(
+#         app="main:app",
+#         reload=True,
+#         log_level="debug",
+#         host="localhost",
+#         port=8000,
+#     )
+# except CancelledError:
+#     logger.log("App has been stopped")
 
-    try:
-        run(
-            app="main:app",
-            reload=True,
-            log_level="debug",
-            host="localhost",
-            port=8000,
-        )
-    except CancelledError:
-        logger.log("App has been stopped")
-
-    except KeyboardInterrupt:
-        logger.log("App has been stopped now")
+# except KeyboardInterrupt:
+#     logger.log("App has been stopped now")

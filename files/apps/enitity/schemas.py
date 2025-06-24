@@ -5,7 +5,7 @@ from files.apps.user.validators import validate_email, validate_string_is_not_em
 
 
 class CreateUserSchema(BaseModel):
-    username: str = Annotated[str, AfterValidator(validate_email)]
+    email: str = Annotated[str, AfterValidator(validate_email)]
     password: Annotated[str, AfterValidator(validate_string_is_not_empty)]
 
 

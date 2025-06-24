@@ -1,7 +1,13 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import String, text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from config import Base
+
+
+if TYPE_CHECKING:
+    from files import Department
 
 
 class User(Base):
@@ -11,7 +17,7 @@ class User(Base):
 
     __tablename__ = "users"
 
-    user_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    username: Mapped[str] = mapped_column(primary_key=True, index=True)
 
     email: Mapped[str | None] = mapped_column(String(255), unique=True, index=True)
     password: Mapped[bytes] = mapped_column()
@@ -25,4 +31,10 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(default=True, server_default=text("TRUE"))
     is_superuser: Mapped[bool] = mapped_column(
         default=False, server_default=text("FALSE")
+    )
+
+    departments: Mapped[list["User"]] = relationship(
+        back_populates="departments",
+        secondary="employees",
+        viewonly=True,
     )
