@@ -9,7 +9,12 @@ from alembic import context
 
 from config import Base
 from config import settings
-from files import User
+from files import (
+    User,
+    Employee,
+    Subdivision,
+    Project,
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

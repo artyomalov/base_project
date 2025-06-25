@@ -1,4 +1,5 @@
 __all__ = (
+    # user
     "User",
     "verify_jwt_access_token",
     "check_user_is_authorized_to_use_route",
@@ -6,6 +7,11 @@ __all__ = (
     "user_router",
     "PasswordHandlingUtil",
     "CreateUserSchema",
+    # department
+    "Employee",
+    "Subdivision",
+    "Project",
+    "DepartmentEnum",
 )
 
 from files.apps.user import (
@@ -16,4 +22,11 @@ from files.apps.user import (
     user_router,
     PasswordHandlingUtil,
     CreateUserSchema,
+)
+
+from files.apps.department import (
+    Employee,
+    Subdivision,
+    Project,
+    DepartmentEnum,
 )

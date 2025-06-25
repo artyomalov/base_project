@@ -35,26 +35,26 @@ class UserEndpoints:
         )
 
         return JSONResponse(
-            content=(users),
+            content=jsonable_encoder(users),
             status_code=status.HTTP_200_OK,
         )
 
     async def get_user(
         self,
         request: Request,
-        username: int,
+        username: str,
     ):
 
         user = await self.services.get_user(username=username)
         return JSONResponse(
-            content=(user),
+            content=jsonable_encoder(user),
             status_code=status.HTTP_200_OK,
         )
 
     async def create_user(self, request: Request, body: CreateUserSchema):
         user = await self.services.create_user(data=body)
         return JSONResponse(
-            content=user,
+            content=jsonable_encoder(user),
             status_code=status.HTTP_201_CREATED,
         )
 
@@ -74,7 +74,7 @@ class UserEndpoints:
         await self.services.update_user_password(data=body)
         return Response(status_code=status.HTTP_200_OK)
 
-    async def delete_user(self, request: Request, username: int):
+    async def delete_user(self, request: Request, username: str):
         await self.services.delete_user(username=username)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -92,7 +92,7 @@ class UserAuthEndpoints:
 
         user_and_token_data_dict = (
             await self.services.issue_access_refresh_token_and_get_user_data(
-                email=body.username, password=body.password
+                username=body.username, password=body.password
             )
         )
 

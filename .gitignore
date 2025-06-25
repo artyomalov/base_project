@@ -5,3 +5,4 @@ __pycache__
 certs/
 jwt-private.pem
 jwt-public.pem
+common/

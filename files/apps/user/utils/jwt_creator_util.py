@@ -8,13 +8,11 @@ class JWTCreatorUtil:
     def __init__(
         self,
         username: int,
-        email: str,
         access_token_expire_time: int,
         refresh_token_expire_time: int,
         # is_admin: bool,
     ):
         self.username = username
-        self.email = email
         self.access_token_expire_time = access_token_expire_time
         self.refresh_token_expire_time = refresh_token_expire_time
         # self.is_admin = is_admin
@@ -23,7 +21,6 @@ class JWTCreatorUtil:
         timestamp = int(time())
         payload = {
             "sub": self.username,
-            "email": self.email,
             "token_type": settings.auth_jwt.ACCESS_TOKEN_TYPE,
             "iat": timestamp,
             "exp": timestamp + self.access_token_expire_time,

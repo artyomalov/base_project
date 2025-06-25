@@ -7,11 +7,11 @@ from files.apps.user.schemas import (
     UserSchema,
     CreateUserSchema,
 )
-from files.apps.user.db_requests import (
-    UserDbRequests,
-    UserAuthDbRequests,
-    user_db_requests,
-    user_auth_db_requests,
+from files.apps.user.repository import (
+    UserRepository,
+    UserAuthRepository,
+    user_repository,
+    user_auth_repository,
 )
 from files.apps.user.utils import (
     PasswordHandlingUtil,
@@ -34,16 +34,16 @@ from files.exceptions import (
 class AuthUserServices:
     def __init__(
         self,
-        db_requests: UserDbRequests,
+        repository: UserRepository,
     ):
-        self.db_requests = db_requests
+        self.repository = repository
 
     async def _get_user_and_check_if_user_is_active(
         self,
-        email: str,
+        username: str,
     ) -> UserSchema:
-        user_data_dto: UserSchema = await self.db_requests.get_user(
-            email=email,
+        user_data_dto: UserSchema = await self.repository.get_user(
+            username=username,
             load_password=True,
         )
 
@@ -53,9 +53,11 @@ class AuthUserServices:
         return user_data_dto
 
     async def issue_access_refresh_token_and_get_user_data(
-        self, email: str, password: str
+        self, username: str, password: str
     ) -> dict:
-        user_data_dto = await self._get_user_and_check_if_user_is_active(email=email)
+        user_data_dto: UserSchema = await self._get_user_and_check_if_user_is_active(
+            username=username
+        )
 
         password_is_valid = PasswordHandlingUtil.validate_password(
             password=password, hashed_password=user_data_dto.password
@@ -66,7 +68,6 @@ class AuthUserServices:
 
         jwt_creator = JWTCreatorUtil(
             username=user_data_dto.username,
-            email=email,
             access_token_expire_time=settings.auth_jwt.ACCESS_TOKEN_EXPIRE_TIME,
             refresh_token_expire_time=settings.auth_jwt.REFRESH_TOKEN_EXPIRE_TIME,
         )
@@ -105,8 +106,8 @@ class AuthUserServices:
 
 
 class VerifyUserServices:
-    def __init__(self, db_requests: UserAuthDbRequests):
-        self.db_requests = db_requests
+    def __init__(self, repository: UserAuthRepository):
+        self.repository = repository
 
     def get_token_and_check_if_it_is_not_none(self, request: Request = None) -> str:
         authorization_header = request.headers.get("authorization")
@@ -129,7 +130,7 @@ class VerifyUserServices:
 
     async def get_user_from_db(self, payload: dict):
         username: str | None = payload.get("sub")
-        user_id_is_main_is_active_dto = await self.db_requests.get_user_id_and_status(
+        user_id_is_main_is_active_dto = await self.repository.get_user_id_and_status(
             username=username
         )
 
@@ -162,16 +163,16 @@ class VerifyUserServices:
 
 
 class UserServices:
-    def __init__(self, db_requests: UserDbRequests):
-        self.db_requests = db_requests
+    def __init__(self, repository: UserRepository):
+        self.repository = repository
 
     @staticmethod
     def _hash_user_password(password: str) -> bytes:
         hashed_password: bytes = PasswordHandlingUtil.hash_password(password=password)
         return hashed_password
 
-    async def get_user(self, username) -> UserSchema:
-        user = await self.db_requests.get_user(username=username)
+    async def get_user(self, username: str) -> UserSchema:
+        user = await self.repository.get_user(username=username)
         return user
 
     async def get_users(
@@ -179,8 +180,8 @@ class UserServices:
         filter: str | None = None,
         limit: int | None = None,
         offset: int | None = None,
-    ) -> UserSchema:
-        users_dto = await self.db_requests.get_users(
+    ) -> list[UserSchema]:
+        users_dto = await self.repository.get_users(
             filter=filter,
             limit=limit,
             offset=offset,
@@ -192,12 +193,12 @@ class UserServices:
         self,
         data: CreateUserSchema,
     ) -> UserSchema:
-        email = data.email
+        username = data.username
         password = data.password
 
-        if not email:
+        if not username:
             raise UnprocessableEntityError(
-                message="Email has not been provided",
+                message="Username has not been provided",
                 class_name=self.__class__.__name__,
                 method_name=self.create_user.__name__,
             )
@@ -211,7 +212,10 @@ class UserServices:
         hashed_password = self._hash_user_password(password=password)
         data.password = hashed_password
 
-        return await self.db_requests.create_user(data=data)
+        print("create", ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        user_dto = await self.repository.create_user(data=data)
+
+        return user_dto
 
     async def update_user(
         self,
@@ -227,11 +231,11 @@ class UserServices:
                 message="is_staff/is_active/is_supeuser field can't be updated by this method. Please use appropriate \
                 method to update this data",
                 class_name=self.__class__.__name__,
-                method_name=self.update_user_data.__name__,
+                method_name=self.update_user.__name__,
             )
 
         if data.avatar is None:
-            await self.db_requests.update_user(data=data)
+            await self.repository.update_user(data=data)
         else:
             image_name = generate_image_uuid_name(settings.IMAGE_AVATAR_TYPE)
             avatar = generate_image_url(
@@ -240,7 +244,7 @@ class UserServices:
             )
             data.avatar = avatar
 
-            await self.db_requests.update_user(data=data)
+            await self.repository.update_user(data=data)
             await save_base64_image_to_fs(
                 base64_string=avatar,
                 image_name=image_name,
@@ -252,10 +256,10 @@ class UserServices:
             raise UnprocessableEntityError(
                 message="Password data has not been provided",
                 class_name=self.__class__.__name__,
-                method_name=self.update_user_data.__name__,
+                method_name=self.update_user.__name__,
             )
 
-        hashed_current_password = await self.db_requests.get_user_password(
+        hashed_current_password = await self.repository.get_user_password(
             username=data.username
         )
 
@@ -268,7 +272,7 @@ class UserServices:
 
         hashed_password = self._hash_user_password(password=data.new_password)
 
-        await self.db_requests.update_user_password(
+        await self.repository.update_user_password(
             username=data.username,
             new_password=hashed_password,
         )
@@ -277,9 +281,9 @@ class UserServices:
         self,
         username: int,
     ) -> None:
-        await self.db_requests.delete_user(username=username)
+        await self.repository.delete_user(username=username)
 
 
-auth_user_services = AuthUserServices(db_requests=user_db_requests)
-verify_user_services = VerifyUserServices(db_requests=user_auth_db_requests)
-user_services = UserServices(db_requests=user_db_requests)
+auth_user_services = AuthUserServices(repository=user_repository)
+verify_user_services = VerifyUserServices(repository=user_auth_repository)
+user_services = UserServices(repository=user_repository)

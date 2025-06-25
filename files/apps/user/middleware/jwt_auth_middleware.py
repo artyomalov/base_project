@@ -20,7 +20,12 @@ logger = getLogger("common.base_logger")
 
 
 async def verify_jwt_access_token(request: Request, call_next):
+    if not settings.REQUIRE_AUTH:
+        response = await call_next(request)
+        return response
+    
     try:
+
         path = request.scope.get("path")
         if (
             path and path in settings.auth_jwt.ALLOW_ANY_ROUTES

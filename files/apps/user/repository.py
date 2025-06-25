@@ -10,17 +10,14 @@ from files.apps.user.schemas import UserSchema
 from files.exceptions import DoesNotExistError, ValidationError
 
 
-class UserDbRequests:
+class UserRepository:
     def __init__(self, async_session: async_sessionmaker[AsyncSession]):
         self.async_session = async_session
 
     async def get_user(
-        self, username: int = None, email: str = None, load_password: bool = False
+        self, username: str = None, email: str = None, load_password: bool = False
     ) -> UserSchema:
         async with self.async_session() as session:
-
-            if username is not None and email is not None:
-                raise
 
             load_list = [
                 User.username,
@@ -42,7 +39,8 @@ class UserDbRequests:
                         raiseload=True,
                     )
                 )
-                if username is not None:
+
+                if username is not None or (username is not None and email is not None):
                     query = query.where(username == username)
                 if email is not None:
                     query = query.where(email == email)
@@ -101,7 +99,7 @@ class UserDbRequests:
                 query = query.offset(offset=offset)
 
             query_rows = await session.execute(statement=query)
-            query_rows_result = query_rows.scalars().all()
+            query_rows_result = query_rows.all()
 
             users_dto = [
                 UserSchema(
@@ -119,46 +117,47 @@ class UserDbRequests:
 
     async def create_user(self, data: UserSchema):
         async with self.async_session() as session:
-            try:
-                stmt = (
-                    insert(User)
-                    .values(
-                        data.model_dump(
-                            exclude_none=True,
-                            exclude_unset=True,
-                        )
-                    )
-                    .returning(
-                        User.username,
-                        User.email,
-                        User.name,
-                        User.phone_number,
-                        User.avatar,
-                        User.about,
-                        User.is_staff,
-                        User.is_active,
-                        User.is_superuser,
-                    )
+            stmt = (
+                insert(User)
+                .values(
+                    username=data.username,
+                    password=data.password,
+                    # data.model_dump(
+                    #     exclude_none=True,
+                    #     exclude_unset=True,
+                    # )
                 )
-
-                stmt_result = await session.execute(statement=stmt)
-                user: User = stmt_result.scalar_one()
-
-                user_dto = UserSchema(
-                    username=user.username,
-                    email=user.email,
-                    name=user.name,
-                    phone_number=user.phone_number,
-                    avatar=user.avatar,
-                    about=user.about,
-                    is_staff=user.is_staff,
-                    is_active=user.is_active,
-                    is_superuser=user.is_superuser,
+                .returning(
+                    User.username,
+                    User.email,
+                    User.name,
+                    User.phone_number,
+                    User.avatar,
+                    User.about,
+                    User.is_staff,
+                    User.is_active,
+                    User.is_superuser,
                 )
+            )
 
-                return user_dto
-            except:
-                pass
+            stmt_result = await session.execute(statement=stmt)
+            user: User = stmt_result.one()
+
+            user_dto = UserSchema(
+                username=user.username,
+                email=user.email,
+                name=user.name,
+                phone_number=user.phone_number,
+                avatar=user.avatar,
+                about=user.about,
+                is_staff=user.is_staff,
+                is_active=user.is_active,
+                is_superuser=user.is_superuser,
+            )
+
+            await session.commit()
+
+            return user_dto
 
     async def update_user(self, data: UserSchema) -> None:
         async with async_session() as session:
@@ -201,30 +200,32 @@ class UserDbRequests:
 
             return user_password
 
-    async def delete_user(self, username: int) -> None:
+    async def delete_user(self, username: str) -> None:
         async with self.async_session() as session:
-            stmt = delete(User).where(username == username)
+            if not username:
+                raise ValidationError()
+
+            stmt = delete(User).where(User.username == username)
+
             await session.execute(stmt)
+            await session.commit()
 
 
-class UserAuthDbRequests:
+class UserAuthRepository:
     def __init__(self, async_session: async_sessionmaker[AsyncSession]):
         self.async_session = async_session
 
-    async def get_user_id_and_status(self, email: str) -> "UserSchema":
+    async def get_user_id_and_status(self, username: str) -> "UserSchema":
         async with self.async_session() as session:
             try:
-
                 query = select(
-                    User.username,
                     User.is_active,
                     User.is_staff,
-                ).where(User.email == email)
+                ).where(User.username == username)
                 query_result = await session.execute(statement=query)
                 query_result_row: User = query_result.one_or_none()
 
                 return UserSchema(
-                    email=email,
                     username=query_result_row.username,
                     is_active=query_result_row.is_active,
                     is_admin=query_result_row.is_staff,
@@ -238,5 +239,5 @@ class UserAuthDbRequests:
                 )
 
 
-user_auth_db_requests = UserAuthDbRequests(async_session=async_session)
-user_db_requests = UserDbRequests(async_session=async_session)
+user_auth_repository = UserAuthRepository(async_session=async_session)
+user_repository = UserRepository(async_session=async_session)

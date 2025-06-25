@@ -72,6 +72,7 @@ class Subdivision(Base):
     department: Mapped[DepartmentEnum] = mapped_column(
         default=DepartmentEnum.ADMINISTRATIVE
     )
+    projects: Mapped["Project"] = relationship(back_populates="subdivision")
 
 
 class Project(Base):
@@ -89,9 +90,10 @@ class Project(Base):
         default=None,
         server_default="NULL",
     )
-    subdivision = Mapped["Subdivision"] = mapped_column(
+    subdivision_id: Mapped[int] = mapped_column(
         ForeignKey(
             "subdivisions.subdivision_id",
             ondelete="CASCADE",
         )
     )
+    subdivision: Mapped["Subdivision"] = relationship(back_populates="projects")

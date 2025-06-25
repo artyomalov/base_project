@@ -7,7 +7,7 @@ from config import Base
 
 
 if TYPE_CHECKING:
-    from files import Department
+    from files import Subdivision
 
 
 class User(Base):
@@ -33,8 +33,8 @@ class User(Base):
         default=False, server_default=text("FALSE")
     )
 
-    departments: Mapped[list["User"]] = relationship(
-        back_populates="departments",
+    departments: Mapped[list["Subdivision"]] = relationship(
+        back_populates="employees",
         secondary="employees",
         viewonly=True,
     )

@@ -73,6 +73,7 @@ class Setting(BaseSettings):
     TEST_DB_NAME: str = None
 
     auth_jwt: AuthJWT = AuthJWT()
+    REQUIRE_AUTH: bool = False
 
     @property
     def database_url(self):

@@ -14,8 +14,13 @@ logger = getLogger("logger")
 
 
 async def create_root_user():
-    username = str(input("username: ")) or "root"
-    password = str(input("password: ")) or "root"
+    username = input("username (default 'root'): ")
+    if not username:
+        username = "root"
+
+    password = input("password (default 'root'): ")
+    if not password:
+        password = "root"
 
     hashed_password = PasswordHandlingUtil.hash_password(password=password)
     async with async_session() as session:

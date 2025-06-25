@@ -10,13 +10,13 @@ class CreateUserSchema(BaseModel):
 
 
 class UpdateUserPasswordSchema(BaseModel):
-    username: int
+    username: str
     current_password: str
     new_password: str
 
 
 class UserSchema(BaseModel):
-    username: int
+    username: str
     email: Annotated[str | None, AfterValidator(validate_email)] = None
     password: bytes | None = None
     name: Annotated[str | None, AfterValidator(validate_string_is_not_empty)] = None
