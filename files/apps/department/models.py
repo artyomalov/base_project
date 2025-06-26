@@ -72,7 +72,7 @@ class Subdivision(Base):
     department: Mapped[DepartmentEnum] = mapped_column(
         default=DepartmentEnum.ADMINISTRATIVE
     )
-    projects: Mapped["Project"] = relationship(back_populates="subdivision")
+    projects: Mapped[list["Project"]] = relationship(back_populates="subdivision")
 
 
 class Project(Base):
