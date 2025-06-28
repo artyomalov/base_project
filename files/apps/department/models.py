@@ -38,7 +38,7 @@ class Employee(Base):
         ForeignKey("users.username", ondelete="CASCADE"),
         primary_key=True,
     )
-    department: Mapped[int] = mapped_column(
+    subdivision: Mapped[int] = mapped_column(
         ForeignKey("subdivisions.subdivision_id", ondelete="CASCADE"),
         primary_key=True,
     )
@@ -64,15 +64,16 @@ class Subdivision(Base):
         default=datetime.now(UTC),
         server_default=text("TIMEZONE('utc', now())"),
     )
+    department: Mapped[DepartmentEnum] = mapped_column(
+        default=DepartmentEnum.ADMINISTRATIVE
+    )
+
+    projects: Mapped[list["Project"]] = relationship(back_populates="subdivision")
     employees: Mapped[list["User"]] = relationship(
         back_populates="departments",
         secondary="employees",
         viewonly=True,
     )
-    department: Mapped[DepartmentEnum] = mapped_column(
-        default=DepartmentEnum.ADMINISTRATIVE
-    )
-    projects: Mapped[list["Project"]] = relationship(back_populates="subdivision")
 
 
 class Project(Base):

@@ -1,89 +1,142 @@
 from config import settings
+from files.apps.department.repository import (
+    EmployeeRepository,
+    ProjectRepository,
+    SubdivisionRepository,
+)
+from files.apps.department.schemas import (
+    EmployeeSchema,
+    ProjectSchema,
+    SubdivisionSchema,
+)
+
+
+class EmployeeService:
+    def __init__(self, service: EmployeeRepository):
+        self.service = service
+
+    async def create_employee(self, data: EmployeeSchema) -> bool:
+        result = await self.service.create_employee(data=data)
+        return result
+
+    async def delete_employee(self, data: EmployeeSchema) -> bool:
+        result = await self.service.delete_employee(data=data)
+        return result
 
 
 class SubdivisionService:
-    def __init__(
-        self,
-        repository,
-    ):
-        self.repository = repository
-        self.link_generator = "LinkGenerator(url, model, e.t.c)"
-        self.paginator = "Paginator(settings.PER_PAGE_ITEMS_COUNT)"
+    def __init__(self, subdivision_repository: SubdivisionRepository):
+        self.repository = subdivision_repository
 
-    def list_subdivisions(self):
+    async def list_subdivisions(
+        self,
+        filter: str,
+        offset: int,
+        limit: int,
+    ) -> list[SubdivisionSchema]:
         """
-        get subdivisions list with pagination
+        Get subdivisions list with pagination
         add link for every subdivision
         """
-        pass
+        subdivisions_dto = await self.repository.list_subdivisions(
+            filter=filter,
+            offset=offset,
+            limit=limit,
+        )
 
-    def get_subdivision(self):
+        return subdivisions_dto
+
+    async def get_subdivision(self, subdivision_id: int):
         """
         get subdivision data from db
         generate link to projects
         generate links for subdivision actions
         """
-        pass
+        subdivision_dto = await self.repository.get_subdivision(
+            subdivision_id=subdivision_id
+        )
 
-    def create_subdivision(self):
-        """
-        Creates subdivision and returns created result
-        with all nessessary links
-        """
-        pass
+        return subdivision_dto
 
-    def update_subdivision(self):
+    async def create_subdivision(self, data: SubdivisionSchema) -> SubdivisionSchema:
+        """
+        Creates subdivision and returns
+        created subdivision
+        """
+        subdivision_dto = await self.repository.create_subdivision(data=data)
+
+        return subdivision_dto
+
+    async def update_subdivision(self, data: SubdivisionSchema) -> SubdivisionSchema:
         """
         Updates selected subdivision and
-        returns updated result with all
-        nesessary links
+        returns updated result
         """
-        pass
+        subdivision_dto = await self.repository.update_subdivision(data=data)
 
-    def delete_subdivision(self):
+        return subdivision_dto
+
+    async def delete_subdivision(self, subdivision_id: int) -> None:
         """
         Deletes selected subdivision
         """
+        await self.repository.delete_subdivision(subdivision_id=subdivision_id)
 
 
 class ProjectService:
-    def __init__(self, repository):
+    def __init__(self, repository: ProjectRepository):
         self.repository = repository
-        self.link_generator = "LinkGenerator(url, model, e.t.c)"
-        self.paginator = "Paginator(settings.PER_PAGE_ITEMS_COUNT)"
 
-    def list_projects(self):
+    async def list_projects(
+        self,
+        subdivision_id: int,
+        filter: str,
+        offset: int,
+        limit: int,
+    ) -> list[ProjectSchema]:
         """
         Get projects list with pagination
         add link for every project
         """
-        pass
+        projects_dto = await self.repository.list_projects(
+            subdivision_id=subdivision_id,
+            filter=filter,
+            offset=offset,
+            limit=limit,
+        )
 
-    def get_project(self):
+        return projects_dto
+
+    async def get_project(self, project_id: int) -> ProjectSchema:
         """
         Get project data from db
-        generate link to projects
-        generate links for project actions
         """
-        pass
+        project_dto = await self.repository.get_project(project_id=project_id)
 
-    def create_project(self):
-        """
-        Creates project and returns created result
-        with all nessessary links
-        """
-        pass
+        return project_dto
 
-    def update_project(self):
+    async def create_project(self, data: ProjectSchema) -> ProjectSchema:
         """
-        Updates selected project and
-        returns updated result with all
-        nesessary links
+        Creates project and
+        returns created result
         """
-        pass
+        project_dto = await self.repository.create_project(data=data)
 
-    def delete_project(self):
+        return project_dto
+
+    async def update_project(self, data: ProjectSchema) -> ProjectSchema:
+        """
+        Updates selected project
+        and returns updated result
+        """
+        project_dto = await self.repository.update_project(data=data)
+
+        return project_dto
+
+    async def delete_project(self, project_id) -> None:
         """
         Deletes project by id
         """
-        pass
+        project_dto = await self.repository.delete_project(project_id=project_id)
+
+        return project_dto

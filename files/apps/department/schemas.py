@@ -1,8 +1,14 @@
+from typing import Any
 from typing_extensions import Annotated
 from datetime import datetime, UTC
 from pydantic import BaseModel, AfterValidator, ConfigDict
 from enums import DepartmentEnum
 from files.apps.user.validators import validate_string_is_not_empty
+
+
+class EmployeeSchema(BaseModel):
+    employee: str
+    subdivision: int
 
 
 class SubdivisionSchema(BaseModel):
@@ -11,33 +17,25 @@ class SubdivisionSchema(BaseModel):
     description: Annotated[str | None, AfterValidator(validate_string_is_not_empty)] = (
         None
     )
-    creation_time: datetime
+    creation_time: datetime | None = None
     department: DepartmentEnum
 
     employees_link: Annotated[
         str | None, AfterValidator(validate_string_is_not_empty)
     ] = None
-    subdivision_link: Annotated[
-        str | None, AfterValidator(validate_string_is_not_empty)
-    ] = None
-    projects_link: Annotated[
-        str | None, AfterValidator(validate_string_is_not_empty)
-    ] = None
+
+    #
+    projects: list["ProjectSchema"] | None = None
+    employees: list["EmployeeSchema"] | None = None
 
 
 class ProjectSchema(BaseModel):
     project_id: int
-    name: Annotated[str, AfterValidator(validate_string_is_not_empty)] = None
+    name: Annotated[str, AfterValidator(validate_string_is_not_empty)]
     completed: bool = False
-    start_time: datetime
+    start_time: datetime | None = None
     complete_time: datetime | None = None
     description: Annotated[str | None, AfterValidator(validate_string_is_not_empty)] = (
         None
     )
-
-    project_link: Annotated[
-        str | None, AfterValidator(validate_string_is_not_empty)
-    ] = None
-    subdivision_link: Annotated[
-        str | None, AfterValidator(validate_string_is_not_empty)
-    ] = None
+    subdivision_id: int

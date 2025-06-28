@@ -18,7 +18,6 @@ class UserRepository:
         self, username: str = None, email: str = None, load_password: bool = False
     ) -> UserSchema:
         async with self.async_session() as session:
-
             load_list = [
                 User.username,
                 User.email,
@@ -30,6 +29,7 @@ class UserRepository:
                 User.is_active,
                 User.is_superuser,
             ]
+            
             if load_password:
                 load_list.append(User.password)
             try:
