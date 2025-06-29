@@ -7,8 +7,10 @@ from config import async_session
 
 from files.exceptions.does_not_exist_exception import DoesNotExistError
 
-from files.apps.department.models import Subdivision, Project, Employee
-from files.apps.department.schemas import (
+from files.apps.subdivision.models import Subdivision, Project, Employee
+from files.apps.subdivision.schemas import (
+    BaseProjectSchema,
+    BaseSubdivisionSchema,
     EmployeeSchema,
     SubdivisionSchema,
     ProjectSchema,
@@ -19,35 +21,51 @@ class EmployeeRepository:
     def __init__(self, async_session: async_sessionmaker[AsyncSession]):
         self.async_session = async_session
 
-    async def create_employee(self, data: EmployeeSchema) -> bool:
+    async def list_employees(self, project_id: int):
+        async with self.async_session() as session:
+            stmt = select(Employee).options(
+                joinedload(Employee.employee).load_only(
+                    "username",
+                    "email",
+                    "name",
+                    "phone_number",
+                    "avatar",
+                    "about",
+                    "is_staff",
+                    "is_active",
+                    "is_superuser",
+                )
+            )
+            stmt_result = await session.execute(statement=stmt)
+            employees = stmt_result.scalars.all()
+
+            print(employees, ">>>>>>>>>>>>>>>>>>>>>>>>>")
+
+    async def create_employee(self, data: EmployeeSchema) -> None:
         async with self.async_session() as session:
             try:
                 stmt = insert(Employee).values(
-                    employee=data.employee,
+                    user=data.user,
                     subdivision=data.subdivision,
                 )
                 await session.execute(statement=stmt)
                 await session.commit()
-
-                return True
             except:
-                return False
+                pass
 
-    async def delete_employee(self, data: EmployeeSchema) -> bool:
+    async def delete_employee(self, data: EmployeeSchema) -> None:
         async with self.async_session() as session:
             try:
                 stmt = delete(Employee).where(
                     and_(
-                        Employee.employee == data.employee,
+                        Employee.user == data.user,
                         Employee.subdivision == data.subdivision,
                     )
                 )
                 await session.execute(stmt)
                 await session.commit()
-
-                return True
             except:
-                return False
+                pass
 
 
 class SubdivisionRepository:
@@ -62,21 +80,23 @@ class SubdivisionRepository:
     ) -> list[SubdivisionSchema]:
         async with self.async_session() as session:
             query = (
-                select(
-                    Subdivision.subdivision_id,
-                    Subdivision.name,
-                    Subdivision.description,
-                    Subdivision.creation_time,
-                    Subdivision.department,
-                    Subdivision.employees,
+                select(Subdivision)
+                .options(
+                    load_only(
+                        Subdivision.subdivision_id,
+                        Subdivision.name,
+                        Subdivision.description,
+                        Subdivision.creation_time,
+                        Subdivision.department,
+                        raiseload=True,
+                    ).selectinload(Subdivision.employees)
                 )
-                .options(joinedload(Subdivision.employees))
                 .where()
                 .offset(offset)
                 .limit(limit)
             )
-            query_result = await session.execute(statement=query)
-            subdivisions = query_result.all()
+            query_result = await session.execute(query)
+            subdivisions = query_result.scalars().all()
 
             subdivisions_list_dto = []
 
@@ -90,26 +110,28 @@ class SubdivisionRepository:
                     employees=subdivision.employees,
                 )
 
-                subdivisions_list_dto.append[subdivision_dto]
+                subdivisions_list_dto.append(subdivision_dto)
 
             return subdivisions_list_dto
 
     async def get_subdivision(self, subdivision_id: int) -> SubdivisionSchema:
         async with self.async_session() as session:
             query = (
-                select(
-                    Subdivision.name,
-                    Subdivision.description,
-                    Subdivision.creation_time,
-                    Subdivision.department,
-                    Subdivision.employees,
+                select(Subdivision)
+                .options(
+                    load_only(
+                        Subdivision.name,
+                        Subdivision.description,
+                        Subdivision.creation_time,
+                        Subdivision.department,
+                        Subdivision.employees,
+                    ).selectinload(Subdivision.employees)
                 )
-                .options(joinedload(Subdivision.employees))
                 .where(Subdivision.subdivision_id == subdivision_id)
             )
 
             query_result = await session.execute(statement=query)
-            subdivision: Subdivision = query_result.all()
+            subdivision: Subdivision = query_result.scalar_one()
 
             subdivision_dto = SubdivisionSchema(
                 subdivision_id=subdivision_id,
@@ -122,30 +144,32 @@ class SubdivisionRepository:
 
             return subdivision_dto
 
-    async def create_subdivision(self, data: SubdivisionSchema) -> SubdivisionSchema:
+    async def create_subdivision(
+        self, data: BaseSubdivisionSchema
+    ) -> SubdivisionSchema:
         async with self.async_session() as session:
             stmt = (
                 insert(Subdivision)
-                .values(
-                    name=data.name,
-                    description=data.description,
-                    department=data.department,
-                )
+                .values(**data.model_dump())
                 .returning(
                     Subdivision.subdivision_id,
+                    Subdivision.name,
+                    Subdivision.description,
+                    Subdivision.creation_time,
+                    Subdivision.department,
                 )
             )
 
             stmt_result = await session.execute(statement=stmt)
 
-            subdivision_id: int = stmt_result.scalar_one()
+            subdivision: Subdivision = stmt_result.one()
 
-            subdivision_dto = Subdivision(
-                subdivision_id=subdivision_id,
-                name=data.name,
-                description=data.description,
-                creation_time=data.creation_time,
-                department=data.department,
+            subdivision_dto = SubdivisionSchema(
+                subdivision_id=subdivision.subdivision_id,
+                name=subdivision.name,
+                description=subdivision.description,
+                creation_time=subdivision.creation_time,
+                department=subdivision.department,
             )
 
             await session.commit()
@@ -157,29 +181,30 @@ class SubdivisionRepository:
             update_dict = {}
 
             if data.name is not None:
-                update["name"] = data.name
+                update_dict["name"] = data.name
             if data.description is not None:
-                update["description"] = data.description
+                update_dict["description"] = data.description
             if data.department is not None:
-                update["department"] = data.department
+                update_dict["department"] = data.department
 
             stmt = (
                 update(Subdivision)
                 .values(**update_dict)
                 .where(Subdivision.subdivision_id == data.subdivision_id)
-                .returning(
-                    Subdivision.subdivision_id,
-                    Subdivision.name,
-                    Subdivision.description,
-                    Subdivision.creation_time,
-                    Subdivision.department,
-                    Subdivision.employees,
+                .returning(Subdivision)
+                .options(
+                    load_only(
+                        Subdivision.subdivision_id,
+                        Subdivision.name,
+                        Subdivision.description,
+                        Subdivision.creation_time,
+                        Subdivision.department,
+                    )
                 )
-                .options(joinedload(Subdivision.employees))
             )
 
             stmt_result = await session.execute(statement=stmt)
-            subdivision: Subdivision = stmt_result.all()
+            subdivision: Subdivision = stmt_result.scalar_one()
 
             subdivision_dto = SubdivisionSchema(
                 subdivision_id=subdivision.subdivision_id,
@@ -187,7 +212,6 @@ class SubdivisionRepository:
                 description=subdivision.description,
                 creation_time=subdivision.creation_time,
                 department=subdivision.department,
-                subdivision=subdivision.employees,
             )
 
             await session.commit()
@@ -205,12 +229,10 @@ class SubdivisionRepository:
                     Subdivision.description,
                     Subdivision.creation_time,
                     Subdivision.department,
-                    Subdivision.employees,
                 )
-                .options(joinedload(Subdivision.employees))
             )
             stmt_result = await session.execute(statement=stmt)
-            subdivision: Subdivision = stmt_result.all()
+            subdivision: Subdivision = stmt_result.one()
 
             subdivision_dto = SubdivisionSchema(
                 subdivision_id=subdivision.subdivision_id,
@@ -218,7 +240,6 @@ class SubdivisionRepository:
                 description=subdivision.description,
                 creation_time=subdivision.creation_time,
                 department=subdivision.department,
-                employees=subdivision.employees,
             )
 
             await session.commit()
@@ -239,14 +260,18 @@ class ProjectRepository:
     ) -> list[ProjectSchema]:
         async with self.async_session() as session:
             query = (
-                select(
-                    Project.project_id,
-                    Project.name,
-                    Project.completed,
-                    Project.start_time,
-                    Project.complete_time,
-                    Project.description,
-                    Project.subdivision_id,
+                select(Project)
+                .options(
+                    load_only(
+                        Project.project_id,
+                        Project.name,
+                        Project.completed,
+                        Project.start_time,
+                        Project.complete_time,
+                        Project.description,
+                        Project.subdivision_id,
+                        raiseload=True,
+                    )
                 )
                 .where(subdivision_id == subdivision_id)
                 .limit(limit)
@@ -274,27 +299,34 @@ class ProjectRepository:
     async def get_project(self, project_id) -> ProjectSchema:
         try:
             async with self.async_session() as session:
-                query = select(
-                    Project.project_id,
-                    Project.name,
-                    Project.completed,
-                    Project.start_time,
-                    Project.complete_time,
-                    Project.description,
-                    Project.subdivision_id,
-                ).where(Project.project_id == project_id)
+                query = (
+                    select(Project)
+                    .options(
+                        load_only(
+                            Project.project_id,
+                            Project.name,
+                            Project.completed,
+                            Project.start_time,
+                            Project.complete_time,
+                            Project.description,
+                            Project.subdivision_id,
+                            raiseload=True,
+                        )
+                    )
+                    .where(Project.project_id == project_id)
+                )
 
                 query_result = await session.execute(query)
                 project = query_result.scalar_one()
 
                 project_dto = ProjectSchema(
-                    project.project_id,
-                    project.name,
-                    project.completed,
-                    project.start_time,
-                    project.complete_time,
-                    project.description,
-                    project.subdivision_id,
+                    project_id=project.project_id,
+                    name=project.name,
+                    completed=project.completed,
+                    start_time=project.start_time,
+                    complete_time=project.complete_time,
+                    description=project.description,
+                    subdivision_id=project.subdivision_id,
                 )
 
                 return project_dto
@@ -308,11 +340,15 @@ class ProjectRepository:
         except MultipleResultsFound as error:
             pass
 
-    async def create_project(self, data: ProjectSchema):
+    async def create_project(self, subdivision_id: int, data: BaseProjectSchema):
         async with self.async_session() as session:
+            print(data, ">>>>>>>>>>>>>>>>>>>>>>>>>")
             stmt = (
                 insert(Project)
-                .values(**data.model_dump(exclude_none=True))
+                .values(
+                    **data.model_dump(exclude_none=True),
+                    subdivision_id=subdivision_id,
+                )
                 .returning(
                     Project.project_id,
                     Project.name,
@@ -325,40 +361,28 @@ class ProjectRepository:
             )
 
             stmt_result = await session.execute(stmt)
-            project = stmt_result.all()
+            project: Project = stmt_result.one()
 
             project_dto = ProjectSchema(
-                project.project_id,
-                project.name,
-                project.completed,
-                project.start_time,
-                project.complete_time,
-                project.description,
-                project.subdivision_id,
+                project_id=project.project_id,
+                name=project.name,
+                completed=project.completed,
+                start_time=project.start_time,
+                complete_time=project.complete_time,
+                description=project.description,
+                subdivision_id=project.subdivision_id,
             )
             await session.commit()
 
             return project_dto
 
-    async def update_project(self, data: ProjectSchema):
+    async def update_project(self, project_id: int, data: BaseProjectSchema):
         async with self.async_session() as session:
-            update_dict = {}
-
-            if data.name is not None:
-                update["name"] = data.name
-            if data.completed is not None:
-                update["completed"] = data.completed
-            if data.complete_time is not None:
-                update["complete_time"] = data.complete_time
-            if data.description is not None:
-                update["description"] = data.description
-            if data.subdivision_id is not None:
-                update["subdivision_id"] = data.subdivision_id
 
             stmt = (
                 update(Project)
-                .values(**update_dict)
-                .where(Project.project_id == data.project_id)
+                .values(**data.model_dump())
+                .where(Project.project_id == project_id)
                 .returning(
                     Project.project_id,
                     Project.name,
@@ -370,16 +394,17 @@ class ProjectRepository:
                 )
             )
 
-            project = await session.execute(statement=stmt)
+            stmt_result = await session.execute(statement=stmt)
+            project = stmt_result.one()
 
             project_dto = ProjectSchema(
-                project.project_id,
-                project.name,
-                project.completed,
-                project.start_time,
-                project.complete_time,
-                project.description,
-                project.subdivision_id,
+                project_id=project.project_id,
+                name=project.name,
+                completed=project.completed,
+                start_time=project.start_time,
+                complete_time=project.complete_time,
+                description=project.description,
+                subdivision_id=project.subdivision_id,
             )
             await session.commit()
 
@@ -389,7 +414,9 @@ class ProjectRepository:
         async with self.async_session() as session:
             stmt = delete(Project).where(Project.project_id == project_id)
             await session.execute(stmt)
-            await session.commit(stmt)
+            await session.commit()
 
 
+employee_repository = EmployeeRepository(async_session=async_session)
 subdivision_repository = SubdivisionRepository(async_session=async_session)
+project_repository = ProjectRepository(async_session=async_session)

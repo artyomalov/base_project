@@ -75,6 +75,9 @@ class Setting(BaseSettings):
     auth_jwt: AuthJWT = AuthJWT()
     REQUIRE_AUTH: bool = False
 
+    API_VERSION: str = "v1"
+    BASE_URL = "localhost:8000/api" + "/" + API_VERSION
+
     @property
     def database_url(self):
         if self.TESTING:

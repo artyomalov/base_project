@@ -19,7 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from config import Base
 
-from files.apps.department.enums import DepartmentEnum
+from files.apps.subdivision.enums import DepartmentEnum
 
 
 if TYPE_CHECKING:
@@ -34,7 +34,7 @@ class Employee(Base):
 
     __tablename__ = "employees"
 
-    employee: Mapped[str] = mapped_column(
+    user: Mapped[str] = mapped_column(
         ForeignKey("users.username", ondelete="CASCADE"),
         primary_key=True,
     )

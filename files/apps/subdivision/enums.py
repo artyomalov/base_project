@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class DepartmentEnum(Enum):
+class DepartmentEnum(str, Enum):
     """
     Enum representing different functional areas of city government departments
     """
@@ -21,3 +21,7 @@ class DepartmentEnum(Enum):
     ANIMAL_SERVICES = "Animal Services"
     DISABILITY_SERVICES = "Disability Services"
     TECHNOLOGY = "Technology & Innovation"
+
+    @classmethod
+    def to_dict(cls):
+        return {member.name: member.value for member in cls}

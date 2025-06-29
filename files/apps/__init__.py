@@ -12,6 +12,8 @@ __all__ = (
     "Subdivision",
     "Project",
     "DepartmentEnum",
+    "subdivision_router",
+    "project_router",
 )
 
 from files.apps.user import (
@@ -24,9 +26,11 @@ from files.apps.user import (
     CreateUserSchema,
 )
 
-from files.apps.department import (
+from files.apps.subdivision import (
     Employee,
     Subdivision,
     Project,
     DepartmentEnum,
+    subdivision_router,
+    project_router,
 )

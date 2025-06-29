@@ -2,35 +2,30 @@ from typing import Any
 from typing_extensions import Annotated
 from datetime import datetime, UTC
 from pydantic import BaseModel, AfterValidator, ConfigDict
-from enums import DepartmentEnum
+
+from files.apps.subdivision.enums import DepartmentEnum
 from files.apps.user.validators import validate_string_is_not_empty
 
 
 class EmployeeSchema(BaseModel):
-    employee: str
+    user: str
     subdivision: int
 
 
-class SubdivisionSchema(BaseModel):
-    subdivision_id: int
+class BaseSubdivisionSchema(BaseModel):
     name: Annotated[str, AfterValidator(validate_string_is_not_empty)]
     description: Annotated[str | None, AfterValidator(validate_string_is_not_empty)] = (
         None
     )
-    creation_time: datetime | None = None
     department: DepartmentEnum
 
-    employees_link: Annotated[
-        str | None, AfterValidator(validate_string_is_not_empty)
-    ] = None
 
-    #
-    projects: list["ProjectSchema"] | None = None
-    employees: list["EmployeeSchema"] | None = None
+class SubdivisionSchema(BaseSubdivisionSchema):
+    subdivision_id: int
+    creation_time: datetime | None = None
 
 
-class ProjectSchema(BaseModel):
-    project_id: int
+class BaseProjectSchema(BaseModel):
     name: Annotated[str, AfterValidator(validate_string_is_not_empty)]
     completed: bool = False
     start_time: datetime | None = None
@@ -38,4 +33,27 @@ class ProjectSchema(BaseModel):
     description: Annotated[str | None, AfterValidator(validate_string_is_not_empty)] = (
         None
     )
+
+
+class ProjectSchema(BaseProjectSchema):
+    project_id: int
     subdivision_id: int
+
+
+# Response models
+class SubdivisionUrlsSchema(BaseModel):
+    subdivision_url: str
+    projects_url: str
+    employees_url: str
+
+
+class SubdivisionResponseSchema(SubdivisionSchema):
+    urls: SubdivisionUrlsSchema
+
+
+class ProjectUrlsSchema(BaseModel):
+    project_url: str
+
+
+class ProjectResponseSchema(SubdivisionSchema):
+    urls: SubdivisionUrlsSchema

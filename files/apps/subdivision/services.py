@@ -1,32 +1,36 @@
-from config import settings
-from files.apps.department.repository import (
+from files.apps.subdivision.repository import (
     EmployeeRepository,
     ProjectRepository,
     SubdivisionRepository,
+    employee_repository,
+    subdivision_repository,
+    project_repository,
 )
-from files.apps.department.schemas import (
+from files.apps.subdivision.schemas import (
+    BaseSubdivisionSchema,
     EmployeeSchema,
+    BaseProjectSchema,
     ProjectSchema,
     SubdivisionSchema,
 )
 
 
 class EmployeeService:
-    def __init__(self, service: EmployeeRepository):
-        self.service = service
+    def __init__(self, repository: EmployeeRepository):
+        self.repository = repository
 
     async def create_employee(self, data: EmployeeSchema) -> bool:
-        result = await self.service.create_employee(data=data)
+        result = await self.repository.create_employee(data=data)
         return result
 
     async def delete_employee(self, data: EmployeeSchema) -> bool:
-        result = await self.service.delete_employee(data=data)
+        result = await self.repository.delete_employee(data=data)
         return result
 
 
 class SubdivisionService:
-    def __init__(self, subdivision_repository: SubdivisionRepository):
-        self.repository = subdivision_repository
+    def __init__(self, repository: SubdivisionRepository):
+        self.repository = repository
 
     async def list_subdivisions(
         self,
@@ -46,7 +50,7 @@ class SubdivisionService:
 
         return subdivisions_dto
 
-    async def get_subdivision(self, subdivision_id: int):
+    async def get_subdivision(self, subdivision_id: int) -> SubdivisionSchema:
         """
         get subdivision data from db
         generate link to projects
@@ -58,7 +62,9 @@ class SubdivisionService:
 
         return subdivision_dto
 
-    async def create_subdivision(self, data: SubdivisionSchema) -> SubdivisionSchema:
+    async def create_subdivision(
+        self, data: BaseSubdivisionSchema
+    ) -> SubdivisionSchema:
         """
         Creates subdivision and returns
         created subdivision
@@ -115,28 +121,43 @@ class ProjectService:
 
         return project_dto
 
-    async def create_project(self, data: ProjectSchema) -> ProjectSchema:
+    async def create_project(
+        self, subdivision_id: int, data: BaseProjectSchema
+    ) -> ProjectSchema:
         """
         Creates project and
         returns created result
         """
-        project_dto = await self.repository.create_project(data=data)
+        project_dto = await self.repository.create_project(
+            subdivision_id=subdivision_id,
+            data=data,
+        )
 
         return project_dto
 
-    async def update_project(self, data: ProjectSchema) -> ProjectSchema:
+    async def update_project(
+        self,
+        project_id: int,
+        data: BaseProjectSchema,
+    ) -> ProjectSchema:
         """
         Updates selected project
         and returns updated result
         """
-        project_dto = await self.repository.update_project(data=data)
+        project_dto = await self.repository.update_project(
+            project_id=project_id,
+            data=data,
+        )
 
         return project_dto
 
-    async def delete_project(self, project_id) -> None:
+    async def delete_project(self, project_id: int) -> None:
         """
         Deletes project by id
         """
-        project_dto = await self.repository.delete_project(project_id=project_id)
+        await self.repository.delete_project(project_id=project_id)
 
-        return project_dto
+
+employee_service = EmployeeService(repository=employee_repository)
+subdivision_service = SubdivisionService(repository=subdivision_repository)
+project_service = ProjectService(repository=project_repository)
