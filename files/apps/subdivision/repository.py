@@ -2,7 +2,6 @@ from sqlalchemy import select, insert, update, delete, and_
 from sqlalchemy.orm import load_only, defer, joinedload, selectinload
 from sqlalchemy.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-
 from config import async_session
 
 from files.exceptions.does_not_exist_exception import DoesNotExistError
@@ -16,50 +15,80 @@ from files.apps.subdivision.schemas import (
     ProjectSchema,
 )
 
+from files.apps.user import user_models_adapter
+
+
+User = user_models_adapter.User
+
 
 class EmployeeRepository:
     def __init__(self, async_session: async_sessionmaker[AsyncSession]):
         self.async_session = async_session
 
-    async def list_employees(self, project_id: int):
-        async with self.async_session() as session:
-            stmt = select(Employee).options(
-                joinedload(Employee.employee).load_only(
-                    "username",
-                    "email",
-                    "name",
-                    "phone_number",
-                    "avatar",
-                    "about",
-                    "is_staff",
-                    "is_active",
-                    "is_superuser",
+    async def list_employees(self, subdivision_id) -> EmployeeSchema:
+        async with async_session() as session:
+            query = (
+                select(
+                    User.username,
+                    User.email,
+                    User.name,
+                    User.phone_number,
+                    User.avatar,
+                    User.about,
+                    User.is_staff,
+                    User.is_active,
+                    User.is_superuser,
                 )
+                .join(Employee, User.username == Employee.user)
+                .where(Subdivision.subdivision_id == subdivision_id)
             )
-            stmt_result = await session.execute(statement=stmt)
-            employees = stmt_result.scalars.all()
+            query_result = await session.execute(query)
 
-            print(employees, ">>>>>>>>>>>>>>>>>>>>>>>>>")
+            employees = query_result.all()
 
-    async def create_employee(self, data: EmployeeSchema) -> None:
+            employee_dto = [
+                EmployeeSchema(
+                    username=employee.username,
+                    email=employee.email,
+                    name=employee.name,
+                    phone_number=employee.phone_number,
+                    avatar=employee.avatar,
+                    about=employee.about,
+                    is_staff=employee.is_staff,
+                    is_active=employee.is_active,
+                    is_superuser=employee.is_superuser,
+                )
+                for employee in employees
+            ]
+            return employee_dto
+
+    async def create_employee(
+        self,
+        subdivision: int,
+        user: str,
+    ) -> None:
         async with self.async_session() as session:
             try:
                 stmt = insert(Employee).values(
-                    user=data.user,
-                    subdivision=data.subdivision,
+                    user=user,
+                    subdivision=subdivision,
                 )
                 await session.execute(statement=stmt)
                 await session.commit()
             except:
                 pass
 
-    async def delete_employee(self, data: EmployeeSchema) -> None:
+    async def delete_employee(
+        self,
+        subdivision: int,
+        user: str,
+    ) -> None:
         async with self.async_session() as session:
             try:
                 stmt = delete(Employee).where(
                     and_(
-                        Employee.user == data.user,
-                        Employee.subdivision == data.subdivision,
+                        Employee.user == user,
+                        Employee.subdivision == subdivision,
                     )
                 )
                 await session.execute(stmt)
@@ -245,6 +274,34 @@ class SubdivisionRepository:
             await session.commit()
 
             return subdivision_dto
+
+    async def check_subdivision_exist(self, subdivision_id: int) -> bool:
+        async with self.async_session() as session:
+            query = (
+                select(Subdivision.subdivision_id)
+                .where(subdivision_id == subdivision_id)
+                .exists()
+            )
+            exists = await session.execute(statement=query)
+
+            return exists
+
+    # async def list_employees(self, subdivision_id: int) -> UserSchema:
+    #     """
+    #     Lists all subdivisions's employees
+    #     """
+    #     async with async_session() as session:
+    #         query = (
+    #             select(Subdivision)
+    #             .options(
+    #                 load_only(Subdivision.employees).selectinload(Subdivision.employees)
+    #             )
+    #             .where(Subdivision.subdivision_id == subdivision_id)
+    #         )
+    #         query_result = await session.execute(query)
+
+    #         employees = query_result.scalars().all()
+    #         print(employees, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
 
 class ProjectRepository:

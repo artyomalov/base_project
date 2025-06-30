@@ -1,4 +1,4 @@
-from fastapi import status
+from fastapi import status, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse, Response
@@ -13,6 +13,7 @@ from files.apps.user.schemas import (
     CreateUserSchema,
     UpdateUserPasswordSchema,
     UserSchema,
+    UserFilterSchema,
 )
 
 
@@ -23,9 +24,13 @@ class UserEndpoints:
     async def get_users(
         self,
         request: Request,
-        filter=None,
-        limit=20,
-        offset=0,
+        username: list[str] | None = Query(default=None),
+        name: str | None = Query(default=None),
+        is_supeuser: bool = Query(default=None),
+        is_staff: bool = Query(default=None),
+        is_active: bool = Query(default=None),
+        limit=Query(default=20),
+        offset=Query(default=0),
     ):
 
         users = await self.services.get_users(

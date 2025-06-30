@@ -16,7 +16,6 @@ from files.apps.subdivision.services import (
 )
 from files.apps.subdivision.schemas import (
     BaseSubdivisionSchema,
-    EmployeeSchema,
     BaseProjectSchema,
     SubdivisionSchema,
 )
@@ -28,18 +27,30 @@ class EmployeeEndpoints:
     def __init__(self, services: EmployeeService):
         self.services = services
 
-    async def create_employee(self, data: EmployeeSchema):
-        await self.services.create_employee(data=data)
+    async def list_employees(self, subdivision_id: int):
+        employees_dto = await self.services.list_employees(
+            subdivision_id=subdivision_id
+        )
         return JSONResponse(
-            content=jsonable_encoder(data),
-            status_code=status.HTTP_201_CREATED,
+            content=jsonable_encoder(employees_dto), status_code=status.HTTP_200_OK
         )
 
-    async def list_employees(self, project_id: int):
-        pass
+    async def create_employee(self, subdivision: int, user: str):
+        await self.services.create_employee(
+            subdivision=subdivision,
+            user=user,
+        )
+        return Response(status_code=status.HTTP_201_CREATED)
 
-    async def delete_employee(self, data: EmployeeSchema):
-        await self.services.delete_employee(data=data)
+    async def delete_employee(
+        self,
+        subdivision: int,
+        user: str,
+    ):
+        await self.services.delete_employee(
+            subdivision=subdivision,
+            user=user,
+        )
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

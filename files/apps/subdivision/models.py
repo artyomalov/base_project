@@ -20,10 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from config import Base
 
 from files.apps.subdivision.enums import DepartmentEnum
-
-
-if TYPE_CHECKING:
-    from files import User
+from files.apps.user import user_models_adapter
 
 
 class Employee(Base):
@@ -41,6 +38,14 @@ class Employee(Base):
     subdivision: Mapped[int] = mapped_column(
         ForeignKey("subdivisions.subdivision_id", ondelete="CASCADE"),
         primary_key=True,
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user",
+            "subdivision",
+            name="uq_user_subdivision",
+        ),
     )
 
 
@@ -69,7 +74,7 @@ class Subdivision(Base):
     )
 
     projects: Mapped[list["Project"]] = relationship(back_populates="subdivision")
-    employees: Mapped[list["User"]] = relationship(
+    employees: Mapped[list[user_models_adapter.User]] = relationship(
         back_populates="departments",
         secondary="employees",
         viewonly=True,

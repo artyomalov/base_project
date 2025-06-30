@@ -6,6 +6,11 @@ __all__ = (
     "user_auth_router",
     "PasswordHandlingUtil",
     "CreateUserSchema",
+    # adapters
+    "UserModelsAdapter",
+    "UserRepositoryAdapter",
+    "user_models_adapter",
+    "user_repository_adapter",
 )
 
 
@@ -20,3 +25,10 @@ from .router import user_router, user_auth_router
 from .schemas import CreateUserSchema
 
 from .utils import PasswordHandlingUtil
+
+from .adapters import (
+    user_models_adapter,
+    user_repository_adapter,
+    UserModelsAdapter,
+    UserRepositoryAdapter,
+)

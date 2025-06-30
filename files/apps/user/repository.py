@@ -29,7 +29,7 @@ class UserRepository:
                 User.is_active,
                 User.is_superuser,
             ]
-            
+
             if load_password:
                 load_list.append(User.password)
             try:
@@ -209,6 +209,14 @@ class UserRepository:
 
             await session.execute(stmt)
             await session.commit()
+
+    async def check_user_exists(self, username: str) -> None:
+        async with self.async_session() as session:
+            query = select(User).where(User.username == username).exists()
+
+            exists = await session.execute(statement=query)
+
+            return exists
 
 
 class UserAuthRepository:

@@ -13,6 +13,11 @@ from files.apps.subdivision.schemas import (
     SubdivisionSchema,
 )
 
+employee_router = APIRouter(
+    prefix="/subdivisions/{subdivision_id}/employees",
+    tags=["employees"],
+)
+
 subdivision_router = APIRouter(
     prefix="/subdivisions",
     tags=["subdivisions"],
@@ -23,6 +28,38 @@ project_router = APIRouter(
     tags=["projects"],
 )
 
+# subdivision_router.add_api_route(
+#     path="employees",
+#     methods=["GET"],
+#     endpoint=subdivision_endpoints.list_employees,
+#     response_model=None,
+#     summary="List employees",
+#     description="Get employees(users) of concrete subdivision",
+# )
+employee_router.add_api_route(
+    path="",
+    methods=["GET"],
+    endpoint=employee_endpoints.list_employees,
+    response_model=None,
+    summary="List employees",
+    description="Get employees(users) of concrete subdivision",
+)
+employee_router.add_api_route(
+    path="/{user}",
+    methods=["POST"],
+    endpoint=employee_endpoints.create_employee,
+    response_model=None,
+    summary="Create employee",
+    description="Creates many-to-many relationship between user and subdivision",
+)
+employee_router.add_api_route(
+    path="/{user}",
+    methods=["DELETE"],
+    endpoint=employee_endpoints.delete_employee,
+    response_model=None,
+    summary="Delete employee",
+    description="Removes many-to-many relationship between user and subdivision",
+)
 
 subdivision_router.add_api_route(
     path="/departments",

@@ -14,6 +14,7 @@ __all__ = (
     "DepartmentEnum",
     "subdivision_router",
     "project_router",
+    "employee_router",
 )
 
 from files.apps.user import (
@@ -33,4 +34,5 @@ from files.apps.subdivision import (
     DepartmentEnum,
     subdivision_router,
     project_router,
+    employee_router,
 )

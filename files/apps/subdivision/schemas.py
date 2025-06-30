@@ -8,8 +8,15 @@ from files.apps.user.validators import validate_string_is_not_empty
 
 
 class EmployeeSchema(BaseModel):
-    user: str
-    subdivision: int
+    username: str
+    email: str | None = None
+    name: str | None = None
+    avatar: str | None = None
+    about: str | None = None
+    phone_number: str | None = None
+    is_supeuser: bool | None = None
+    is_staff: bool | None = None
+    is_active: bool | None = None
 
 
 class BaseSubdivisionSchema(BaseModel):

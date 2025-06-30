@@ -8,24 +8,69 @@ from files.apps.subdivision.repository import (
 )
 from files.apps.subdivision.schemas import (
     BaseSubdivisionSchema,
-    EmployeeSchema,
     BaseProjectSchema,
+    EmployeeSchema,
     ProjectSchema,
     SubdivisionSchema,
 )
 
+from files.apps.user import UserRepositoryAdapter, user_repository_adapter
+from files.exceptions import DoesNotExistError
+
 
 class EmployeeService:
-    def __init__(self, repository: EmployeeRepository):
+    def __init__(
+        self,
+        repository: EmployeeRepository,
+        subdivision_repository: SubdivisionRepository,
+        user_repository_adapter: UserRepositoryAdapter,
+    ):
         self.repository = repository
+        self.subdivision_repository = subdivision_repository
+        self.user_repository_adapter = user_repository_adapter
 
-    async def create_employee(self, data: EmployeeSchema) -> bool:
-        result = await self.repository.create_employee(data=data)
+    async def list_employees(self, subdivision_id: int) -> EmployeeSchema:
+        result = await self.repository.list_employees(subdivision_id=subdivision_id)
         return result
 
-    async def delete_employee(self, data: EmployeeSchema) -> bool:
-        result = await self.repository.delete_employee(data=data)
-        return result
+    async def create_employee(
+        self,
+        subdivision: int,
+        user: str,
+    ) -> None:
+
+        subdivision_exists = self.subdivision_repository(subdivision_id=subdivision)
+        user_exists = self.user_repository_adapter.check_user_exists(username=user)
+
+        if not subdivision_exists:
+            raise DoesNotExistError(
+                message=f"Subdivision with id: {subdivision} does not exist",
+                class_name=self.__class__.__name__,
+                method_name=self.get_user.__name__,
+                error_text=f"Subdivision with id: {subdivision} does not exist",
+            )
+        if not user_exists:
+            raise DoesNotExistError(
+                message=f"User with username: {user} does not exist",
+                class_name=self.__class__.__name__,
+                method_name=self.get_user.__name__,
+                error_text=f"User with username: {user} does not exist",
+            )
+
+        await self.repository.create_employee(
+            subdivision=subdivision,
+            user=user,
+        )
+
+    async def delete_employee(
+        self,
+        subdivision: int,
+        user: str,
+    ) -> None:
+        await self.repository.delete_employee(
+            subdivision=subdivision,
+            user=user,
+        )
 
 
 class SubdivisionService:
@@ -87,6 +132,16 @@ class SubdivisionService:
         Deletes selected subdivision
         """
         await self.repository.delete_subdivision(subdivision_id=subdivision_id)
+
+    # async def list_employees(self, subdivision_id: int) -> UserSchema:
+    #     """
+    #     Lists all subdivisions's employees
+    #     """
+
+    #     employees_dto = await self.repository.list_employees(
+    #         subdivision_id=subdivision_id
+    #     )
+    #     return employees_dto
 
 
 class ProjectService:
@@ -158,6 +213,10 @@ class ProjectService:
         await self.repository.delete_project(project_id=project_id)
 
 
-employee_service = EmployeeService(repository=employee_repository)
+employee_service = EmployeeService(
+    repository=employee_repository,
+    subdivision_repository=subdivision_repository,
+    user_repository_adapter=user_repository_adapter,
+)
 subdivision_service = SubdivisionService(repository=subdivision_repository)
 project_service = ProjectService(repository=project_repository)
