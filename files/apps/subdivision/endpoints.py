@@ -1,10 +1,9 @@
-from fastapi import Response, status
+from fastapi import Response, status, Query
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 
 from config import settings
-
-from common import Paginator, generate_url
+from common import generate_url
 
 from files.apps.subdivision.services import (
     EmployeeService,
@@ -27,7 +26,10 @@ class EmployeeEndpoints:
     def __init__(self, services: EmployeeService):
         self.services = services
 
-    async def list_employees(self, subdivision_id: int):
+    async def list_employees(
+        self,
+        subdivision_id: int,
+    ):
         employees_dto = await self.services.list_employees(
             subdivision_id=subdivision_id
         )
@@ -59,9 +61,7 @@ class SubdivisionEndpoints:
         self,
         services: SubdivisionService,
         base_url: str,
-        PaginatorClass: Paginator | None = None,
     ):
-        self.PaginatorClass = PaginatorClass
         self.services = services
         self.base_url = base_url
 
@@ -98,16 +98,32 @@ class SubdivisionEndpoints:
 
     async def list_subdivisions(
         self,
-        filter: str = "",
-        offset: int = 0,
-        limit: int = 20,
+        names: str | None = Query(
+            default=None,
+            description='string of names splitted by "|"',
+            example="name|name",
+        ),
+        departments: DepartmentEnum | None = Query(
+            default=None,
+            description=f'string of available departments splitted by "|". Get departments {settings.BASE_URL}/subdivisions/departments',
+            example="Public Safety|Transportation",
+        ),
+        limit: int | None = Query(default=20),
+        offset: int | None = Query(default=0),
     ):
         """
         Get list of subdivisions and generates
         links to projects and employees
         """
+
+        if names:
+            names = names.split("|")
+        if departments:
+            departments = departments.split("|")
+
         subdivisions_list_dto = await self.services.list_subdivisions(
-            filter=filter,
+            names=names,
+            departments=departments,
             offset=offset,
             limit=limit,
         )
@@ -193,9 +209,7 @@ class ProjectEndpoints:
         self,
         services: ProjectService,
         base_url: str,
-        PaginatorClass: Paginator | None = None,
     ):
-        self.PaginatorClass = PaginatorClass
         self.services = services
         self.base_url = base_url
 
@@ -216,19 +230,29 @@ class ProjectEndpoints:
     async def list_projects(
         self,
         subdivision_id: int,
-        filter: str = "",
-        offset: int = 0,
-        limit: int = 20,
+        names: str | None = Query(
+            default=None,
+            description='string of names splitted by "|"',
+            example="name|name",
+        ),
+        completed: bool | None = Query(default=None),
+        limit: int | None = Query(default=20),
+        offset: int | None = Query(default=0),
     ):
         """
         Get list of project and
         generates links to projects
         """
+
+        if names:
+            names = names.split("|")
+
         projects_list_dto = await self.services.list_projects(
             subdivision_id=subdivision_id,
-            filter=filter,
-            offset=offset,
+            names=names,
+            completed=completed,
             limit=limit,
+            offset=offset,
         )
         projects_list_response = []
         for project in projects_list_dto:

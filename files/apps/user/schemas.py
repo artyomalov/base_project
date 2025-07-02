@@ -39,15 +39,12 @@ class TokenDataSchema(BaseModel):
 
 class UserLoginResponseSchema(BaseModel):
     token_data: TokenDataSchema
-    user_data: UserSchema
+    user_data: "UserResponseSchema"
 
 
-# filter schema
-class UserFilterSchema(BaseModel):
-    username: list[str] | None = None
-    name: str | None = None
-    is_supeuser: bool = None
-    is_staff: bool = None
-    is_active: bool = None
-    limit: int = (20,)
-    offset: int = (0,)
+class UserUrlsSchema(BaseModel):
+    user_url: str
+
+
+class UserResponseSchema(UserSchema):
+    urls: UserUrlsSchema

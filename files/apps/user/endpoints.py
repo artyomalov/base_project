@@ -1,7 +1,10 @@
-from fastapi import status, Query
+from fastapi import Response, status, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.requests import Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse
+
+from config import settings
+from common import generate_url
 
 from files.apps.user.services import (
     UserServices,
@@ -13,34 +16,83 @@ from files.apps.user.schemas import (
     CreateUserSchema,
     UpdateUserPasswordSchema,
     UserSchema,
-    UserFilterSchema,
 )
 
 
-class UserEndpoints:
-    def __init__(self, services: UserServices):
+class GenerateURLS:
+    def __init__(self, base_url: str):
+        self.base_url = base_url
+
+    def _generate_urls(self, username: str):
+        subdivision_url = generate_url(
+            base_url=self.base_url,
+            urls=["users", username],
+        )
+
+        return {
+            "user_url": subdivision_url,
+        }
+
+
+class UserEndpoints(GenerateURLS):
+    def __init__(
+        self,
+        services: UserServices,
+        base_url: str,
+    ):
+        super().__init__(base_url=base_url)
+
         self.services = services
 
-    async def get_users(
+    async def list_users(
         self,
         request: Request,
-        username: list[str] | None = Query(default=None),
-        name: str | None = Query(default=None),
-        is_supeuser: bool = Query(default=None),
+        usernames: str | None = Query(
+            default=None,
+            description='string of usernames splitted by "|"',
+            example="username|username",
+        ),
+        names: str | None = Query(
+            default=None,
+            description='string of names splitted by "|"',
+            example="name|name",
+        ),
+        emails: str | None = Query(
+            default=None,
+            description='string of emails splitted by "|"',
+            example="email|email",
+        ),
+        is_superuser: bool = Query(default=None),
         is_staff: bool = Query(default=None),
         is_active: bool = Query(default=None),
-        limit=Query(default=20),
-        offset=Query(default=0),
+        limit: int | None = Query(default=20),
+        offset: int | None = Query(default=0),
     ):
+        if usernames:
+            usernames = usernames.split("|")
+        if names:
+            names = names.split("|")
+        if emails:
+            emails = emails.split("|")
 
-        users = await self.services.get_users(
-            filter=filter,
+        users_dto = await self.services.list_users(
+            usernames=usernames,
+            names=names,
+            emails=emails,
+            is_superuser=is_superuser,
+            is_staff=is_staff,
+            is_active=is_active,
             limit=limit,
             offset=offset,
         )
 
+        users_list_response = []
+        for user in users_dto:
+            urls = self._generate_urls(username=user.username)
+            users_list_response.append({**user.model_dump, "urls": urls})
+
         return JSONResponse(
-            content=jsonable_encoder(users),
+            content=jsonable_encoder(users_list_response),
             status_code=status.HTTP_200_OK,
         )
 
@@ -50,16 +102,22 @@ class UserEndpoints:
         username: str,
     ):
 
-        user = await self.services.get_user(username=username)
+        user_dto = await self.services.get_user(username=username)
+
+        urls = self._generate_urls(username=user_dto.username)
+
         return JSONResponse(
-            content=jsonable_encoder(user),
-            status_code=status.HTTP_200_OK,
+            content=jsonable_encoder({**user_dto.model_dump(), "urls": urls}),
+            status_code=status.HTTP_201_CREATED,
         )
 
     async def create_user(self, request: Request, body: CreateUserSchema):
-        user = await self.services.create_user(data=body)
+        user_dto = await self.services.create_user(data=body)
+
+        urls = self._generate_urls(username=user_dto.username)
+
         return JSONResponse(
-            content=jsonable_encoder(user),
+            content=jsonable_encoder({**user_dto.model_dump(), "urls": urls}),
             status_code=status.HTTP_201_CREATED,
         )
 
@@ -84,11 +142,10 @@ class UserEndpoints:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-class UserAuthEndpoints:
-    def __init__(
-        self,
-        services: AuthUserServices,
-    ):
+class UserAuthEndpoints(GenerateURLS):
+    def __init__(self, services: AuthUserServices, base_url: str):
+
+        super().__init__(base_url=base_url)
         self.services = services
 
     async def issue_access_refresh_token_and_get_user_data(
@@ -101,8 +158,14 @@ class UserAuthEndpoints:
             )
         )
 
+        urls = self._generate_urls(
+            username=user_and_token_data_dict["user_data"]["username"]
+        )
+
+        user_and_token_data_dict["user_data"]["urls"] = urls
+
         return JSONResponse(
-            jsonable_encoder(user_and_token_data_dict),
+            jsonable_encoder({**user_and_token_data_dict}),
             status_code=status.HTTP_200_OK,
         )
 
@@ -120,5 +183,7 @@ class UserAuthEndpoints:
         )
 
 
-user_auth_endpoints = UserAuthEndpoints(services=auth_user_services)
-user_endpoints = UserEndpoints(services=user_services)
+user_auth_endpoints = UserAuthEndpoints(
+    services=auth_user_services, base_url=settings.BASE_URL
+)
+user_endpoints = UserEndpoints(services=user_services, base_url=settings.BASE_URL)

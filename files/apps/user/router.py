@@ -1,6 +1,10 @@
 from fastapi import APIRouter
 
-from files.apps.user.schemas import UserLoginResponseSchema, UserSchema
+from files.apps.user.schemas import (
+    UserLoginResponseSchema,
+    UserResponseSchema,
+    UserSchema,
+)
 from files.apps.user.endpoints import user_endpoints, user_auth_endpoints
 
 
@@ -9,7 +13,7 @@ user_auth_router = APIRouter(
     tags=["auth"],
 )
 user_router = APIRouter(
-    prefix="/user",
+    prefix="/users",
     tags=["user"],
 )
 
@@ -19,43 +23,47 @@ user_auth_router.add_api_route(
     methods=["POST"],
     endpoint=user_auth_endpoints.issue_access_refresh_token_and_get_user_data,
     response_model=UserLoginResponseSchema,
+    summary="Login",
+    description="Returns user data with urls and refresh/ access token",
 )
 user_auth_router.add_api_route(
     path="/refresh",
     methods=["POST"],
     endpoint=user_auth_endpoints.issue_new_access_if_refresh_is_valid,
     response_model=str,
+    summary="Generate access",
+    description="Generates new access token by valid refresh token",
 )
 
 
 user_router.add_api_route(
     methods=["GET"],
-    endpoint=user_endpoints.get_users,
-    path="/get-users",
-    response_model=list[UserSchema],
+    endpoint=user_endpoints.list_users,
+    path="",
+    response_model=list[UserResponseSchema],
     summary="Get user",
     description="Lists users, with or without offset/limit/filter params",
 )
 user_router.add_api_route(
     methods=["GET"],
     endpoint=user_endpoints.get_user,
-    path="/get-user",
-    response_model=UserSchema,
+    path="/{username}",
+    response_model=UserResponseSchema,
     summary="Get one user",
     description="Gets user by it's username",
 )
 user_router.add_api_route(
     methods=["POST"],
     endpoint=user_endpoints.create_user,
-    path="/create-user",
-    response_model=UserSchema,
+    path="",
+    response_model=UserResponseSchema,
     summary="Create user",
     description="Creates new user with provided credentials",
 )
 user_router.add_api_route(
     methods=["PATCH"],
     endpoint=user_endpoints.update_user,
-    path="/update-user",
+    path="/{username}",
     response_model=None,
     summary="Update user",
     description="Updates user data and avatar.\
@@ -65,7 +73,7 @@ user_router.add_api_route(
 user_router.add_api_route(
     methods=["PATCH"],
     endpoint=user_endpoints.update_user_password,
-    path="/update-user-password",
+    path="/{username}/password",
     response_model=None,
     summary="Update user's password",
     description="Hashes and updates user's password",
@@ -73,7 +81,7 @@ user_router.add_api_route(
 user_router.add_api_route(
     methods=["DELETE"],
     endpoint=user_endpoints.delete_user,
-    path="/delete/{username}",
+    path="/{username}",
     response_model=None,
     summary="Deletes user",
     description="Deletes user and all related user's data from database",
@@ -92,7 +100,7 @@ user_router.add_api_route(
 #     def register_routes(self):
 #         self._router.add_api_route(
 #             methods=["GET"],
-#             endpoint=self._endpoints.get_users,
+#             endpoint=self._endpoints.list_users,
 #             path="/get-users",
 #             response_model=list[UserSchema],
 #             summary="Get user",

@@ -4,6 +4,7 @@ from sqlalchemy.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from config import async_session
 
+from files.apps.subdivision.enums import DepartmentEnum
 from files.exceptions.does_not_exist_exception import DoesNotExistError
 
 from files.apps.subdivision.models import Subdivision, Project, Employee
@@ -103,27 +104,35 @@ class SubdivisionRepository:
 
     async def list_subdivisions(
         self,
-        filter: list[str],
-        offset: int,
-        limit: int,
+        names: list[str] | None,
+        departments: list[DepartmentEnum] | None,
+        limit: int | None = 20,
+        offset: int | None = 0,
     ) -> list[SubdivisionSchema]:
         async with self.async_session() as session:
-            query = (
-                select(Subdivision)
-                .options(
-                    load_only(
-                        Subdivision.subdivision_id,
-                        Subdivision.name,
-                        Subdivision.description,
-                        Subdivision.creation_time,
-                        Subdivision.department,
-                        raiseload=True,
-                    ).selectinload(Subdivision.employees)
-                )
-                .where()
-                .offset(offset)
-                .limit(limit)
+            query = select(Subdivision).options(
+                load_only(
+                    Subdivision.subdivision_id,
+                    Subdivision.name,
+                    Subdivision.description,
+                    Subdivision.creation_time,
+                    Subdivision.department,
+                    raiseload=True,
+                ).selectinload(Subdivision.employees)
             )
+
+            conditions = []
+            if names:
+                conditions.append(Subdivision.name.in_(names))
+            if departments:
+                conditions.append(Subdivision.department.in_(departments))
+            query = query.where(*conditions)
+
+            if limit:
+                query = query.limit(limit=limit)
+            if offset:
+                query = query.offset(offset=offset)
+
             query_result = await session.execute(query)
             subdivisions = query_result.scalars().all()
 
@@ -286,23 +295,6 @@ class SubdivisionRepository:
 
             return exists
 
-    # async def list_employees(self, subdivision_id: int) -> UserSchema:
-    #     """
-    #     Lists all subdivisions's employees
-    #     """
-    #     async with async_session() as session:
-    #         query = (
-    #             select(Subdivision)
-    #             .options(
-    #                 load_only(Subdivision.employees).selectinload(Subdivision.employees)
-    #             )
-    #             .where(Subdivision.subdivision_id == subdivision_id)
-    #         )
-    #         query_result = await session.execute(query)
-
-    #         employees = query_result.scalars().all()
-    #         print(employees, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-
 
 class ProjectRepository:
     def __init__(self, async_session: async_sessionmaker[AsyncSession]):
@@ -310,30 +302,37 @@ class ProjectRepository:
 
     async def list_projects(
         self,
-        subdivision_id: int | None = None,
-        filter: dict = None,
-        limit: int = 20,
-        offset: int = 0,
+        subdivision_id: int,
+        names: list[str] | None = None,
+        completed: bool | None = None,
+        limit: int | None = 20,
+        offset: int | None = 0,
     ) -> list[ProjectSchema]:
         async with self.async_session() as session:
-            query = (
-                select(Project)
-                .options(
-                    load_only(
-                        Project.project_id,
-                        Project.name,
-                        Project.completed,
-                        Project.start_time,
-                        Project.complete_time,
-                        Project.description,
-                        Project.subdivision_id,
-                        raiseload=True,
-                    )
+            query = select(Project).options(
+                load_only(
+                    Project.project_id,
+                    Project.name,
+                    Project.completed,
+                    Project.start_time,
+                    Project.complete_time,
+                    Project.description,
+                    Project.subdivision_id,
+                    raiseload=True,
                 )
-                .where(subdivision_id == subdivision_id)
-                .limit(limit)
-                .offset(offset)
             )
+
+            conditions = [Project.subdivision_id == subdivision_id]
+            if names:
+                conditions.append(Project.name.in_(names))
+            if completed is not None:
+                conditions.append(Project.completed == completed)
+            query = query.where(and_(*conditions))
+
+            if limit:
+                query = query.limit(limit=limit)
+            if offset:
+                query = query.offset(offset=offset)
 
             query_result = await session.execute(query)
             projects = query_result.scalars().all()

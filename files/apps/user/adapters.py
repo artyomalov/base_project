@@ -45,7 +45,7 @@ class UserRepositoryAdapter:
         limit: int | None = None,
         offset: int | None = None,
     ):
-        users_dto = await self.repository.get_users(
+        users_dto = await self.repository.list_users(
             filter=filter,
             limit=limit,
             offset=offset,

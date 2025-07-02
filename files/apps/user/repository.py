@@ -1,4 +1,4 @@
-from sqlalchemy import select, insert, update, delete
+from sqlalchemy import select, insert, update, delete, or_
 from sqlalchemy.orm import load_only, defer
 from sqlalchemy.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
@@ -41,9 +41,9 @@ class UserRepository:
                 )
 
                 if username is not None or (username is not None and email is not None):
-                    query = query.where(username == username)
+                    query = query.where(User.username == username)
                 if email is not None:
-                    query = query.where(email == email)
+                    query = query.where(User.email == email)
 
                 query_result = await session.execute(statement=query)
                 user: User = query_result.scalar_one()
@@ -75,9 +75,14 @@ class UserRepository:
             except MultipleResultsFound as error:
                 pass
 
-    async def get_users(
+    async def list_users(
         self,
-        filter: str | None = None,
+        usernames: list[str] | None = None,
+        names: list[str] | None = None,
+        emails: list[str] | None = None,
+        is_superuser: bool = None,
+        is_staff: bool = None,
+        is_active: bool = None,
         limit: int | None = None,
         offset: int | None = None,
     ):
@@ -90,13 +95,28 @@ class UserRepository:
                 User.is_active,
                 User.is_superuser,
             )
-            if filter:
-                # !!!!!!!!!!!!!!!!!!!!!!!!
-                query = query.where(filter)
-            if limit:
+
+            conditions = []
+            if usernames is not None and len(usernames) > 0:
+                conditions.append(User.username.in_(usernames))
+            if names is not None and len(names) > 0:
+                conditions.append(User.name.in_(names))
+            if emails is not None and len(emails) > 0:
+                conditions.append(User.email.in_(emails))
+            if is_superuser is not None:
+                conditions.append(User.is_superuser == is_superuser)
+            if is_staff is not None:
+                conditions.append(User.is_staff == is_staff)
+            if is_active is not None:
+                conditions.append(User.is_active == is_active)
+            if len(conditions) > 0:
+                query = query.where(*conditions)
+
+            if limit is not None:
                 query = query.limit(limit=limit)
-            if offset:
+            if offset is not None:
                 query = query.offset(offset=offset)
+            print(conditions)
 
             query_rows = await session.execute(statement=query)
             query_rows_result = query_rows.all()

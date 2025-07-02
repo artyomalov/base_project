@@ -1,3 +1,4 @@
+from files.apps.subdivision.enums import DepartmentEnum
 from files.apps.subdivision.repository import (
     EmployeeRepository,
     ProjectRepository,
@@ -79,16 +80,18 @@ class SubdivisionService:
 
     async def list_subdivisions(
         self,
-        filter: str,
-        offset: int,
-        limit: int,
+        names: list[str] | None,
+        departments: list[DepartmentEnum] | None,
+        limit: int | None = 20,
+        offset: int | None = 0,
     ) -> list[SubdivisionSchema]:
         """
         Get subdivisions list with pagination
         add link for every subdivision
         """
         subdivisions_dto = await self.repository.list_subdivisions(
-            filter=filter,
+            names=names,
+            departments=departments,
             offset=offset,
             limit=limit,
         )
@@ -151,9 +154,10 @@ class ProjectService:
     async def list_projects(
         self,
         subdivision_id: int,
-        filter: str,
-        offset: int,
-        limit: int,
+        names: list[str] | None = None,
+        completed: bool | None = None,
+        limit: int | None = 20,
+        offset: int | None = 0,
     ) -> list[ProjectSchema]:
         """
         Get projects list with pagination
@@ -161,9 +165,10 @@ class ProjectService:
         """
         projects_dto = await self.repository.list_projects(
             subdivision_id=subdivision_id,
-            filter=filter,
-            offset=offset,
+            names=names,
+            completed=completed,
             limit=limit,
+            offset=offset,
         )
 
         return projects_dto

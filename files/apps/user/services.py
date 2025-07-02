@@ -47,6 +47,9 @@ class AuthUserServices:
             load_password=True,
         )
 
+        if not user_data_dto:
+            raise DoesNotExistError("User does not exist")
+
         if not user_data_dto.is_active:
             raise IsNotActiveError("User has been disabled")
 
@@ -175,14 +178,24 @@ class UserServices:
         user = await self.repository.get_user(username=username)
         return user
 
-    async def get_users(
+    async def list_users(
         self,
-        filter: str | None = None,
+        usernames: list[str] | None = None,
+        names: list[str] | None = None,
+        emails: list[str] | None = None,
+        is_superuser: bool = None,
+        is_staff: bool = None,
+        is_active: bool = None,
         limit: int | None = None,
         offset: int | None = None,
     ) -> list[UserSchema]:
-        users_dto = await self.repository.get_users(
-            filter=filter,
+        users_dto = await self.repository.list_users(
+            usernames=usernames,
+            names=names,
+            emails=emails,
+            is_superuser=is_superuser,
+            is_staff=is_staff,
+            is_active=is_active,
             limit=limit,
             offset=offset,
         )

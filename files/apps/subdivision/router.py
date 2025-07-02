@@ -28,14 +28,6 @@ project_router = APIRouter(
     tags=["projects"],
 )
 
-# subdivision_router.add_api_route(
-#     path="employees",
-#     methods=["GET"],
-#     endpoint=subdivision_endpoints.list_employees,
-#     response_model=None,
-#     summary="List employees",
-#     description="Get employees(users) of concrete subdivision",
-# )
 employee_router.add_api_route(
     path="",
     methods=["GET"],
@@ -76,11 +68,7 @@ subdivision_router.add_api_route(
     endpoint=subdivision_endpoints.list_subdivisions,
     response_model=list[SubdivisionResponseSchema],
     summary="List subdivisions",
-    description="""List subdivisions\
-        params:
-            filter: ;
-            offset: specifies how many records will be skipped;
-            limit: max quantity of returned records""",
+    description="List subdivisions",
 )
 
 subdivision_router.add_api_route(
@@ -128,12 +116,7 @@ project_router.add_api_route(
     endpoint=project_endpoints.list_projects,
     response_model=list[ProjectResponseSchema],
     summary="List projects",
-    description="""List subdivisions and returns projectdata
-    and HATEOAS urls
-    params:
-        filter: ;
-        offset: specifies how many records will be skipped;
-        limit: max quantity of returned records""",
+    description="List subdivisions and returns projectdata and HATEOAS urls",
 )
 
 project_router.add_api_route(
