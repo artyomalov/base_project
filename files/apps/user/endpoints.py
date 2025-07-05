@@ -89,7 +89,7 @@ class UserEndpoints(GenerateURLS):
         users_list_response = []
         for user in users_dto:
             urls = self._generate_urls(username=user.username)
-            users_list_response.append({**user.model_dump, "urls": urls})
+            users_list_response.append({**user.model_dump(), "urls": urls})
 
         return JSONResponse(
             content=jsonable_encoder(users_list_response),
@@ -108,7 +108,7 @@ class UserEndpoints(GenerateURLS):
 
         return JSONResponse(
             content=jsonable_encoder({**user_dto.model_dump(), "urls": urls}),
-            status_code=status.HTTP_201_CREATED,
+            status_code=status.HTTP_200_OK,
         )
 
     async def create_user(self, request: Request, body: CreateUserSchema):
@@ -126,15 +126,18 @@ class UserEndpoints(GenerateURLS):
         request: Request,
         body: UserSchema,
     ):
-        await self.services.update_user(data=body)
-        return Response(status_code=status.HTTP_200_OK)
+        user_dto = await self.services.update_user(data=body)
+        return JSONResponse(
+            content=jsonable_encoder(user_dto), status_code=status.HTTP_200_OK
+        )
 
     async def update_user_password(
         self,
         request: Request,
+        username: str,
         body: UpdateUserPasswordSchema,
     ):
-        await self.services.update_user_password(data=body)
+        await self.services.update_user_password(username=username, data=body)
         return Response(status_code=status.HTTP_200_OK)
 
     async def delete_user(self, request: Request, username: str):

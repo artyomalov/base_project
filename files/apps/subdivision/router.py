@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 
 from files.apps.subdivision.endpoints import (
     employee_endpoints,
@@ -41,6 +41,7 @@ employee_router.add_api_route(
     methods=["POST"],
     endpoint=employee_endpoints.create_employee,
     response_model=None,
+    status_code=status.HTTP_201_CREATED,
     summary="Create employee",
     description="Creates many-to-many relationship between user and subdivision",
 )
@@ -49,6 +50,7 @@ employee_router.add_api_route(
     methods=["DELETE"],
     endpoint=employee_endpoints.delete_employee,
     response_model=None,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete employee",
     description="Removes many-to-many relationship between user and subdivision",
 )
@@ -85,6 +87,7 @@ subdivision_router.add_api_route(
     methods=["POST"],
     endpoint=subdivision_endpoints.create_subdivision,
     response_model=SubdivisionResponseSchema,
+    status_code=status.HTTP_201_CREATED,
     summary="Create subdivisions",
     description="Creates subdivisions and returns created model"
     "with links to projects and employees",
@@ -105,6 +108,7 @@ subdivision_router.add_api_route(
     methods=["DELETE"],
     endpoint=subdivision_endpoints.delete_subdivision,
     response_model=None,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete subdivision",
     description="Deletes subdivision",
 )
@@ -133,6 +137,7 @@ project_router.add_api_route(
     methods=["POST"],
     endpoint=project_endpoints.create_project,
     response_model=ProjectResponseSchema,
+    status_code=status.HTTP_201_CREATED,
     summary="Create project",
     description="Creates project and returns created model",
 )
@@ -152,6 +157,7 @@ project_router.add_api_route(
     methods=["DELETE"],
     endpoint=project_endpoints.delete_project,
     response_model=None,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete project",
     description="Deletes project",
 )

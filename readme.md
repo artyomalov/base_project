@@ -1,7 +1,6 @@
 To run project you need python 3.12.2 or higher, PostgreSQL and OpneSSL to be installed on your pc.
 
 1. Create virtual environment.
-
    - Navigate to the root folder of the project
    - Run "python -m venv .venv".
 

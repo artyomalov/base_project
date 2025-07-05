@@ -40,7 +40,7 @@ class EmployeeService:
         user: str,
     ) -> None:
 
-        subdivision_exists = self.subdivision_repository(subdivision_id=subdivision)
+        subdivision_exists = self.subdivision_repository.check_subdivision_exist(subdivision_id=subdivision)
         user_exists = self.user_repository_adapter.check_user_exists(username=user)
 
         if not subdivision_exists:

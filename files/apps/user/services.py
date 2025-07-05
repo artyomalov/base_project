@@ -225,7 +225,6 @@ class UserServices:
         hashed_password = self._hash_user_password(password=password)
         data.password = hashed_password
 
-        print("create", ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         user_dto = await self.repository.create_user(data=data)
 
         return user_dto
@@ -247,9 +246,7 @@ class UserServices:
                 method_name=self.update_user.__name__,
             )
 
-        if data.avatar is None:
-            await self.repository.update_user(data=data)
-        else:
+        if data.avatar is not None:
             image_name = generate_image_uuid_name(settings.IMAGE_AVATAR_TYPE)
             avatar = generate_image_url(
                 image_name=image_name,
@@ -257,14 +254,18 @@ class UserServices:
             )
             data.avatar = avatar
 
-            await self.repository.update_user(data=data)
             await save_base64_image_to_fs(
                 base64_string=avatar,
                 image_name=image_name,
                 path_to_fs_directory="avatars",
             )
 
-    async def update_user_password(self, data: UpdateUserPasswordSchema) -> None:
+        user_dto = await self.repository.update_user(data=data)
+        return user_dto
+
+    async def update_user_password(
+        self, username: str, data: UpdateUserPasswordSchema
+    ) -> None:
         if not data.current_password or not data.new_password:
             raise UnprocessableEntityError(
                 message="Password data has not been provided",
@@ -273,7 +274,7 @@ class UserServices:
             )
 
         hashed_current_password = await self.repository.get_user_password(
-            username=data.username
+            username=username
         )
 
         current_password_is_valid = PasswordHandlingUtil.validate_password(
@@ -286,7 +287,7 @@ class UserServices:
         hashed_password = self._hash_user_password(password=data.new_password)
 
         await self.repository.update_user_password(
-            username=data.username,
+            username=username,
             new_password=hashed_password,
         )
 

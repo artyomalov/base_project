@@ -10,7 +10,6 @@ class CreateUserSchema(BaseModel):
 
 
 class UpdateUserPasswordSchema(BaseModel):
-    username: str
     current_password: str
     new_password: str
 

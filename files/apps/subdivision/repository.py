@@ -154,33 +154,41 @@ class SubdivisionRepository:
 
     async def get_subdivision(self, subdivision_id: int) -> SubdivisionSchema:
         async with self.async_session() as session:
-            query = (
-                select(Subdivision)
-                .options(
-                    load_only(
-                        Subdivision.name,
-                        Subdivision.description,
-                        Subdivision.creation_time,
-                        Subdivision.department,
-                        Subdivision.employees,
-                    ).selectinload(Subdivision.employees)
+            try:
+                query = (
+                    select(Subdivision)
+                    .options(
+                        load_only(
+                            Subdivision.name,
+                            Subdivision.description,
+                            Subdivision.creation_time,
+                            Subdivision.department,
+                        )
+                        # .selectinload(Subdivision.employees)
+                    )
+                    .where(Subdivision.subdivision_id == subdivision_id)
                 )
-                .where(Subdivision.subdivision_id == subdivision_id)
-            )
 
-            query_result = await session.execute(statement=query)
-            subdivision: Subdivision = query_result.scalar_one()
+                query_result = await session.execute(statement=query)
+                subdivision: Subdivision = query_result.scalar_one()
 
-            subdivision_dto = SubdivisionSchema(
-                subdivision_id=subdivision_id,
-                name=subdivision.name,
-                description=subdivision.description,
-                creation_time=subdivision.creation_time,
-                department=subdivision.department,
-                employees=subdivision.employees,
-            )
+                subdivision_dto = SubdivisionSchema(
+                    subdivision_id=subdivision_id,
+                    name=subdivision.name,
+                    description=subdivision.description,
+                    creation_time=subdivision.creation_time,
+                    department=subdivision.department,
+                    # employees=subdivision.employees,
+                )
 
-            return subdivision_dto
+                return subdivision_dto
+            except NoResultFound as error:
+                DoesNotExistError(
+                    message="Required user doesn't exits",
+                    class_name=self.__class__.__name__,
+                    method_name=self.get_subdivision.__name__,
+                    error_text=str(error),
+                )
 
     async def create_subdivision(
         self, data: BaseSubdivisionSchema
@@ -216,45 +224,53 @@ class SubdivisionRepository:
 
     async def update_subdivision(self, data: SubdivisionSchema) -> SubdivisionSchema:
         async with self.async_session() as session:
-            update_dict = {}
+            try:
+                update_dict = {}
 
-            if data.name is not None:
-                update_dict["name"] = data.name
-            if data.description is not None:
-                update_dict["description"] = data.description
-            if data.department is not None:
-                update_dict["department"] = data.department
+                if data.name is not None:
+                    update_dict["name"] = data.name
+                if data.description is not None:
+                    update_dict["description"] = data.description
+                if data.department is not None:
+                    update_dict["department"] = data.department
 
-            stmt = (
-                update(Subdivision)
-                .values(**update_dict)
-                .where(Subdivision.subdivision_id == data.subdivision_id)
-                .returning(Subdivision)
-                .options(
-                    load_only(
-                        Subdivision.subdivision_id,
-                        Subdivision.name,
-                        Subdivision.description,
-                        Subdivision.creation_time,
-                        Subdivision.department,
+                stmt = (
+                    update(Subdivision)
+                    .values(**update_dict)
+                    .where(Subdivision.subdivision_id == data.subdivision_id)
+                    .returning(Subdivision)
+                    .options(
+                        load_only(
+                            Subdivision.subdivision_id,
+                            Subdivision.name,
+                            Subdivision.description,
+                            Subdivision.creation_time,
+                            Subdivision.department,
+                        )
                     )
                 )
-            )
 
-            stmt_result = await session.execute(statement=stmt)
-            subdivision: Subdivision = stmt_result.scalar_one()
+                stmt_result = await session.execute(statement=stmt)
+                subdivision: Subdivision = stmt_result.scalar_one()
 
-            subdivision_dto = SubdivisionSchema(
-                subdivision_id=subdivision.subdivision_id,
-                name=subdivision.name,
-                description=subdivision.description,
-                creation_time=subdivision.creation_time,
-                department=subdivision.department,
-            )
+                subdivision_dto = SubdivisionSchema(
+                    subdivision_id=subdivision.subdivision_id,
+                    name=subdivision.name,
+                    description=subdivision.description,
+                    creation_time=subdivision.creation_time,
+                    department=subdivision.department,
+                )
 
-            await session.commit()
+                await session.commit()
 
-            return subdivision_dto
+                return subdivision_dto
+            except NoResultFound as error:
+                DoesNotExistError(
+                    message="Required user doesn't exits",
+                    class_name=self.__class__.__name__,
+                    method_name=self.update_subdivision.__name__,
+                    error_text=str(error),
+                )
 
     async def delete_subdivision(self, subdivision_id: int) -> None:
         async with self.async_session() as session:
@@ -398,7 +414,6 @@ class ProjectRepository:
 
     async def create_project(self, subdivision_id: int, data: BaseProjectSchema):
         async with self.async_session() as session:
-            print(data, ">>>>>>>>>>>>>>>>>>>>>>>>>")
             stmt = (
                 insert(Project)
                 .values(
@@ -434,37 +449,45 @@ class ProjectRepository:
 
     async def update_project(self, project_id: int, data: BaseProjectSchema):
         async with self.async_session() as session:
+            try:
 
-            stmt = (
-                update(Project)
-                .values(**data.model_dump())
-                .where(Project.project_id == project_id)
-                .returning(
-                    Project.project_id,
-                    Project.name,
-                    Project.completed,
-                    Project.start_time,
-                    Project.complete_time,
-                    Project.description,
-                    Project.subdivision_id,
+                stmt = (
+                    update(Project)
+                    .values(**data.model_dump())
+                    .where(Project.project_id == project_id)
+                    .returning(
+                        Project.project_id,
+                        Project.name,
+                        Project.completed,
+                        Project.start_time,
+                        Project.complete_time,
+                        Project.description,
+                        Project.subdivision_id,
+                    )
                 )
-            )
 
-            stmt_result = await session.execute(statement=stmt)
-            project = stmt_result.one()
+                stmt_result = await session.execute(statement=stmt)
+                project = stmt_result.one()
 
-            project_dto = ProjectSchema(
-                project_id=project.project_id,
-                name=project.name,
-                completed=project.completed,
-                start_time=project.start_time,
-                complete_time=project.complete_time,
-                description=project.description,
-                subdivision_id=project.subdivision_id,
-            )
-            await session.commit()
+                project_dto = ProjectSchema(
+                    project_id=project.project_id,
+                    name=project.name,
+                    completed=project.completed,
+                    start_time=project.start_time,
+                    complete_time=project.complete_time,
+                    description=project.description,
+                    subdivision_id=project.subdivision_id,
+                )
+                await session.commit()
 
-            return project_dto
+                return project_dto
+            except NoResultFound as error:
+                DoesNotExistError(
+                    message="Required user doesn't exits",
+                    class_name=self.__class__.__name__,
+                    method_name=self.update_subdivision.__name__,
+                    error_text=str(error),
+                )
 
     async def delete_project(self, project_id: int) -> None:
         async with self.async_session() as session:

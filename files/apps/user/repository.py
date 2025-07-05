@@ -116,7 +116,6 @@ class UserRepository:
                 query = query.limit(limit=limit)
             if offset is not None:
                 query = query.offset(offset=offset)
-            print(conditions)
 
             query_rows = await session.execute(statement=query)
             query_rows_result = query_rows.all()
@@ -181,44 +180,95 @@ class UserRepository:
 
     async def update_user(self, data: UserSchema) -> None:
         async with async_session() as session:
-            stmt = (
-                update(User)
-                .where(User.username == data.username)
-                .values(
-                    **data.model_dump(
-                        exclude_defaults=True,
-                        exclude={"username"},
+            try:
+                stmt = (
+                    update(User)
+                    .where(User.username == data.username)
+                    .values(
+                        **data.model_dump(
+                            exclude_defaults=True,
+                            exclude={"username"},
+                        )
+                    )
+                    .returning(
+                        User.username,
+                        User.email,
+                        User.name,
+                        User.phone_number,
+                        User.avatar,
+                        User.about,
+                        User.is_staff,
+                        User.is_active,
+                        User.is_superuser,
                     )
                 )
-            ).returning(User.username)
-            stmt_result = await session.execute(statement=stmt)
-            stmt_result.scalar_one()
+                stmt_result = await session.execute(statement=stmt)
+                user: User = stmt_result.one_or_none()
 
-            await session.commit()
+                if user is not None:
+                    return None
+
+                user_dto = UserSchema(
+                    username=user.username,
+                    email=user.email,
+                    name=user.name,
+                    phone_number=user.phone_number,
+                    avatar=user.avatar,
+                    about=user.about,
+                    is_staff=user.is_staff,
+                    is_active=user.is_active,
+                    is_superuser=user.is_superuser,
+                )
+
+                await session.commit()
+
+                return user_dto
+            except NoResultFound as error:
+                DoesNotExistError(
+                    message="Required user doesn't exits",
+                    class_name=self.__class__.__name__,
+                    method_name=self.update_user.__name__,
+                    error_text=str(error),
+                )
 
     async def update_user_password(
         self,
-        username: int,
+        username: str,
         new_password: str,
     ) -> None:
         async with async_session() as session:
-            stmt_password = (
-                update(User)
-                .values(password=new_password)
-                .where(User.username == username)
-            )
+            try:
+                stmt_password = (
+                    update(User)
+                    .values(password=new_password)
+                    .where(User.username == username)
+                )
 
-            stmt_password_result = await session.execute(stmt_password)
-            stmt_password_result.scalar_one()
-            await session.commit()
+                await session.execute(stmt_password)
+                await session.commit()
+            except NoResultFound as error:
+                DoesNotExistError(
+                    message="Required user doesn't exits",
+                    class_name=self.__class__.__name__,
+                    method_name=self.update_user_password.__name__,
+                    error_text=str(error),
+                )
 
     async def get_user_password(self, username: str) -> bytes:
         async with async_session() as session:
-            stmt = select(User.password).where(User.username == username)
-            stmt_result = await session.execute(stmt)
-            user_password = stmt_result.scalar_one()
+            try:
+                stmt = select(User.password).where(User.username == username)
+                stmt_result = await session.execute(stmt)
+                user_password = stmt_result.scalar_one()
 
-            return user_password
+                return user_password
+            except NoResultFound as error:
+                DoesNotExistError(
+                    message="Required user doesn't exits",
+                    class_name=self.__class__.__name__,
+                    method_name=self.get_user_password.__name__,
+                    error_text=str(error),
+                )
 
     async def delete_user(self, username: str) -> None:
         async with self.async_session() as session:
